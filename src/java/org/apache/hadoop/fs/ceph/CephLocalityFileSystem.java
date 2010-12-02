@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 
-package org.apache.hadoop.fs;
+package org.apache.hadoop.fs.ceph;
 
 import java.io.*;
 import java.net.URI;
@@ -29,6 +29,11 @@ import org.apache.hadoop.fs.permission.*;
 import org.apache.hadoop.util.Progressable;
 import org.apache.hadoop.util.StringUtils;
 import org.apache.hadoop.util.Shell;
+
+import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.fs.FileStatus;
+import org.apache.hadoop.fs.BlockLocation;
+import org.apache.hadoop.fs.RawLocalFileSystem;
 
 /****************************************************************
  * Extend the RawFileSystem API for the Ceph filesystem.
