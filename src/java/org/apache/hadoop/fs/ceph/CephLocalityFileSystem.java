@@ -80,7 +80,7 @@ public class CephLocalityFileSystem extends RawLocalFileSystem {
     //Debug
     //System.out.println(String.format("CephLocalityFileSystem(%s) called.", startDir.toString()));
 
-    this.workingDir = startDir;
+    //this.workingDir = startDir;
 
     //Debug
     //System.out.println(String.format("CephLocalityFileSystem(%s) finished.", startDir.toString()));
