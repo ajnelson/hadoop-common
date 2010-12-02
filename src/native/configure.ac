@@ -94,6 +94,7 @@ AC_CHECK_FUNCS([memset])
 
 AC_CONFIG_FILES([Makefile
                  src/org/apache/hadoop/io/compress/zlib/Makefile
+                 src/org/apache/hadoop/fs/ceph/Makefile
                  lib/Makefile])
 AC_OUTPUT
 
