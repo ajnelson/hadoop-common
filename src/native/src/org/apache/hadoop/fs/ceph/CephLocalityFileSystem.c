@@ -119,7 +119,7 @@ JNIEXPORT jobjectArray JNICALL Java_org_apache_hadoop_fs_CephLocalityFileSystem_
   //debug//ofstream debugstream(logpath, ios_base::app);
   //debug//debugstream << "Starting.  Current time:  " << asctime(timeinfo) << "." << endl;
   //debug//debugstream << "Arguments:  <j_file>, " << j_start << ", " << j_len << endl;
-  memset(errdesc, NULL, 256);
+  memset(errdesc, 0, 256);
 
 
   ////Grab the exception classes for all the little things that can go wrong.
