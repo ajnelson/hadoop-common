@@ -50,7 +50,7 @@ long length        len
 using namespace std; //Debugging
 
 //JNI include
-#include "org_apache_hadoop_fs_CephLocalityFileSystem.h"
+#include "org_apache_hadoop_fs_ceph_CephLocalityFileSystem.h"
 
 //Ceph includes
 #include "client/ioctl.h"
