@@ -45,9 +45,9 @@ long length        len
 #include <errno.h>
 
 #include <time.h>    //Debugging
-#include <iostream>  //Debugging
-#include <fstream>   //Debugging
-using namespace std; //Debugging
+//#include <iostream>  //Debugging
+//#include <fstream>   //Debugging
+//using namespace std; //Debugging
 
 //JNI include
 #include "org_apache_hadoop_fs_ceph_CephLocalityFileSystem.h"
@@ -123,9 +123,9 @@ JNIEXPORT jobjectArray JNICALL Java_org_apache_hadoop_fs_CephLocalityFileSystem_
 
 
   ////Grab the exception classes for all the little things that can go wrong.
-  IllegalArgumentExceptionClass = env->FindClass("java/lang/IllegalArgumentException");
-  IOExceptionClass = env->FindClass("java/io/IOException");
-  OutOfMemoryErrorClass = env->FindClass("java/lang/OutOfMemoryError");
+  IllegalArgumentExceptionClass = (*env)->FindClass(env, "java/lang/IllegalArgumentException");
+  IOExceptionClass = (*env)->FindClass(env, "java/io/IOException");
+  OutOfMemoryErrorClass = (*env)->FindClass(env, "java/lang/OutOfMemoryError");
   if (IllegalArgumentExceptionClass == NULL || IOExceptionClass == NULL || OutOfMemoryErrorClass == NULL) {
     //debug//debugstream << "Failed to get an exception to throw.  Giving up." << endl;
     return NULL;
@@ -139,34 +139,34 @@ JNIEXPORT jobjectArray JNICALL Java_org_apache_hadoop_fs_CephLocalityFileSystem_
 
 
   if (j_start < 0) {
-    env->ThrowNew(IllegalArgumentExceptionClass, "Invalid start parameter (negative).");
+    (*env)->ThrowNew(env, IllegalArgumentExceptionClass, "Invalid start parameter (negative).");
     return NULL;
   }
   if (j_len <= 0) {
-    env->ThrowNew(IllegalArgumentExceptionClass, "Invalid len parameter (nonpositive).");
+    (*env)->ThrowNew(env, IllegalArgumentExceptionClass, "Invalid len parameter (nonpositive).");
     return NULL;
   }
 
 
   ////Grab the reference to the Java classes needed to set up end structure
-  StringClass = env->FindClass("java/lang/String");
+  StringClass = (*env)->FindClass(env, "java/lang/String");
   if (StringClass == NULL) {
-    env->ThrowNew(IOExceptionClass, "Java String class not found; dying a horrible, painful death.");
+    (*env)->ThrowNew(env, IOExceptionClass, "Java String class not found; dying a horrible, painful death.");
     return NULL;
   }
-  BlockLocationClass = env->FindClass("org/apache/hadoop/fs/BlockLocation");
+  BlockLocationClass = (*env)->FindClass(env, "org/apache/hadoop/fs/BlockLocation");
   if (BlockLocationClass == NULL) {
-    env->ThrowNew(IOExceptionClass, "Hadoop BlockLocation class not found.");
+    (*env)->ThrowNew(env, IOExceptionClass, "Hadoop BlockLocation class not found.");
     return NULL;
   }
-  FileStatusClass = env->GetObjectClass(j_file);
+  FileStatusClass = (*env)->GetObjectClass(env, j_file);
   if (FileStatusClass == NULL) {
-    env->ThrowNew(IOExceptionClass, "Hadoop FileStatus class not found.");
+    (*env)->ThrowNew(env, IOExceptionClass, "Hadoop FileStatus class not found.");
     return NULL;
   }
-  CephLocalityFileSystemClass = env->GetObjectClass(obj);
+  CephLocalityFileSystemClass = (*env)->GetObjectClass(env, obj);
   if (CephLocalityFileSystemClass == NULL) {
-    env->ThrowNew(IOExceptionClass, "Hadoop CephLocalityFileSystemClass class not found.");
+    (*env)->ThrowNew(env, IOExceptionClass, "Hadoop CephLocalityFileSystemClass class not found.");
     return NULL;
   }
 
@@ -177,25 +177,25 @@ JNIEXPORT jobjectArray JNICALL Java_org_apache_hadoop_fs_CephLocalityFileSystem_
   //(Type syntax reference: http://java.sun.com/javase/6/docs/technotes/guides/jni/spec/types.html#wp16432 )
 
   //Grab the file length method
-  filelenid = env->GetMethodID(FileStatusClass, "getLen", "()J");
+  filelenid = (*env)->GetMethodID(env, FileStatusClass, "getLen", "()J");
   if (filelenid == NULL) {
-    env->ThrowNew(IOExceptionClass, "Could not get filelenid.");
+    (*env)->ThrowNew(env, IOExceptionClass, "Could not get filelenid.");
     return NULL;
   }
   //debug//debugstream << "filelenid retrieval complete." << endl;
 
   //Grab the BlockLocation constructor
-  constrid = env->GetMethodID(BlockLocationClass, "<init>", "([Ljava/lang/String;[Ljava/lang/String;JJ)V");
+  constrid = (*env)->GetMethodID(env, BlockLocationClass, "<init>", "([Ljava/lang/String;[Ljava/lang/String;JJ)V");
   if (constrid == NULL) {
-    env->ThrowNew(IOExceptionClass, "Could not get constructor id for BlockLocationClass.");
+    (*env)->ThrowNew(env, IOExceptionClass, "Could not get constructor id for BlockLocationClass.");
     return NULL;
   }
   //debug//debugstream << "constrid retrieval complete." << endl;
 
   //Grab the helper method for quick path conversion
-  methodid_getPathStringFromFileStatus = env->GetMethodID(CephLocalityFileSystemClass, "getPathStringFromFileStatus", "(Lorg/apache/hadoop/fs/FileStatus;)Ljava/lang/String;");
+  methodid_getPathStringFromFileStatus = (*env)->GetMethodID(env, CephLocalityFileSystemClass, "getPathStringFromFileStatus", "(Lorg/apache/hadoop/fs/FileStatus;)Ljava/lang/String;");
   if (methodid_getPathStringFromFileStatus == NULL) {
-    env->ThrowNew(IOExceptionClass, "ERROR:  Could not get methodid_getPathStringFromFileStatus.");
+    (*env)->ThrowNew(env, IOExceptionClass, "ERROR:  Could not get methodid_getPathStringFromFileStatus.");
     return NULL;
   }
   //debug//debugstream << "methodid_getPathStringFromFileStatus retrieval complete." << endl;
@@ -203,14 +203,14 @@ JNIEXPORT jobjectArray JNICALL Java_org_apache_hadoop_fs_CephLocalityFileSystem_
 
   ////Calling methods
   //Grab the file length
-  fileLength = env->CallLongMethod(j_file, filelenid);
+  fileLength = (*env)->CallLongMethod(env, j_file, filelenid);
   //debug//debugstream << "Called fileLen()." << endl;
   //One last sanity check
   if (fileLength < j_start) {
     //debug//debugstream << "Starting point after end of file; returning 0 block locations." << endl;
-    aryBlockLocations = env->NewObjectArray(0, BlockLocationClass, NULL);
+    aryBlockLocations = (*env)->NewObjectArray(env, 0, BlockLocationClass, NULL);
     if (aryBlockLocations == NULL) {
-      env->ThrowNew(OutOfMemoryErrorClass,"Unable to allocate 0-length BlockLocation array.");
+      (*env)->ThrowNew(env, OutOfMemoryErrorClass,"Unable to allocate 0-length BlockLocation array.");
       return NULL;
     }
     return aryBlockLocations;
@@ -218,16 +218,16 @@ JNIEXPORT jobjectArray JNICALL Java_org_apache_hadoop_fs_CephLocalityFileSystem_
   //debug//debugstream << "File length according to FileStatus:  " << fileLength << endl;
 
   //Grab the file name
-  j_path = (jstring) env->CallObjectMethod(obj, methodid_getPathStringFromFileStatus, j_file);
+  j_path = (jstring) (*env)->CallObjectMethod(env, obj, methodid_getPathStringFromFileStatus, j_file);
   if (j_path == NULL) {
-    env->ThrowNew(IOExceptionClass, "j_path retrieval failed.");
+    (*env)->ThrowNew(env, IOExceptionClass, "j_path retrieval failed.");
     return NULL;
   }
   //debug//debugstream << "j_path retrieval complete." << endl;
 
-  c_path = env->GetStringUTFChars(j_path, NULL);
+  c_path = (*env)->GetStringUTFChars(env, j_path, NULL);
   if (c_path == NULL) {
-    env->ThrowNew(IOExceptionClass, "c_path is NULL.");
+    (*env)->ThrowNew(env, IOExceptionClass, "c_path is NULL.");
     return NULL;
   }
   //debug//debugstream << "c_path path is " << c_path << endl;
@@ -237,18 +237,18 @@ JNIEXPORT jobjectArray JNICALL Java_org_apache_hadoop_fs_CephLocalityFileSystem_
   //Open the file (need descriptor for ioctl())
   fd = open(c_path , O_CREAT|O_RDWR, 0644);  //TODO Not sure why this opens RDRW and CREAT (code copied from Ceph test).  Necessary for ioctl?
   if (fd <= 0) {
-    env->ThrowNew(IOExceptionClass, "Couldn't open file.");
+    (*env)->ThrowNew(env, IOExceptionClass, "Couldn't open file.");
     //debug//debugstream << "ERROR:  Couldn't open file.  errno:  " << strerror(errno) << ".  fd:  " << strerror(fd) << endl;  //TODO Clean this up.
     return NULL;
   }
   //debug//debugstream << "File opening complete." << endl;
   //Cleanup:  Don't need file name characters anymore.
-  env->ReleaseStringUTFChars(j_path, c_path);
+  (*env)->ReleaseStringUTFChars(env, j_path, c_path);
 
   //Get layout
   err = ioctl(fd, CEPH_IOC_GET_LAYOUT, (unsigned long)&ceph_layout);
   if (err) {
-    env->ThrowNew(IOExceptionClass, "ioctl failed (layout).");
+    (*env)->ThrowNew(env, IOExceptionClass, "ioctl failed (layout).");
     return NULL;
   }
   blocksize=ceph_layout.object_size;  //TODO (big) Expose this object size to the Java file system.
@@ -258,9 +258,9 @@ JNIEXPORT jobjectArray JNICALL Java_org_apache_hadoop_fs_CephLocalityFileSystem_
   numblocks = (j_start+j_len-1)/blocksize - j_start/blocksize + 1;
   //debug//debugstream << "Expecting to work on " << numblocks << " blocks." << endl;
 
-  aryBlockLocations = (jobjectArray) env->NewObjectArray(numblocks, BlockLocationClass, NULL);
+  aryBlockLocations = (jobjectArray) (*env)->NewObjectArray(env, numblocks, BlockLocationClass, NULL);
   if (aryBlockLocations == NULL) {
-    env->ThrowNew(OutOfMemoryErrorClass, "Unable to allocate BlockLocation array.");
+    (*env)->ThrowNew(env, OutOfMemoryErrorClass, "Unable to allocate BlockLocation array.");
     return NULL;
   }
 
@@ -272,7 +272,8 @@ JNIEXPORT jobjectArray JNICALL Java_org_apache_hadoop_fs_CephLocalityFileSystem_
   //TODO This loop test will very probably suffer data races with updates to the file.  Oh; is that why ioctl() gets RDRW?
   jlong loopinit=j_start/blocksize;
   jlong i=loopinit;
-  for (jlong imax=j_start+j_len; i*blocksize < imax; i++) {
+  jlong imax;
+  for (imax=j_start+j_len; i*blocksize < imax; i++) {
     //Note <=; we go through the last requested byte.
     //Set up the data location object
     curoffset = i*blocksize;
@@ -283,7 +284,7 @@ JNIEXPORT jobjectArray JNICALL Java_org_apache_hadoop_fs_CephLocalityFileSystem_
     err = ioctl(fd, CEPH_IOC_GET_DATALOC, (unsigned long)&dl);
     if (err) {
       sprintf(errdesc, "ioctl failed (dataloc); err=%d.", err);
-      env->ThrowNew(IOExceptionClass, errdesc);
+      (*env)->ThrowNew(env, IOExceptionClass, errdesc);
       return NULL;
     }
 
@@ -294,31 +295,31 @@ JNIEXPORT jobjectArray JNICALL Java_org_apache_hadoop_fs_CephLocalityFileSystem_
     memset(buf, 0, 80);
     getnameinfo((struct sockaddr *)&dl.osd_addr, sizeof(dl.osd_addr), buf, sizeof(buf), 0, 0, NI_NUMERICHOST);
     //debug//debugstream << "Found host " << buf << endl;
-    jstring j_tmphost = env->NewStringUTF(buf);
+    jstring j_tmphost = (*env)->NewStringUTF(env, buf);
     //The names list should include the port number if following the example getFileBlockLocations from FileSystem;
     //however, as of 0.20.2, nothing invokes BlockLocation.getNames().
-    jstring j_tmpname = env->NewStringUTF(buf);
+    jstring j_tmpname = (*env)->NewStringUTF(env, buf);
     if (j_tmphost == NULL || j_tmpname == NULL) {
-      env->ThrowNew(OutOfMemoryErrorClass, "Unable to convert String for name or host.");
+      (*env)->ThrowNew(env, OutOfMemoryErrorClass, "Unable to convert String for name or host.");
       return NULL;
     }
 
     //Define an array of strings for names, and one for hosts (only going to be one element long for now)
-    jobjectArray aryNames = (jobjectArray) env->NewObjectArray(1, StringClass, NULL);
-    jobjectArray aryHosts = (jobjectArray) env->NewObjectArray(1, StringClass, NULL);
+    jobjectArray aryNames = (jobjectArray) (*env)->NewObjectArray(env, 1, StringClass, NULL);
+    jobjectArray aryHosts = (jobjectArray) (*env)->NewObjectArray(env, 1, StringClass, NULL);
     if (aryHosts == NULL || aryNames == NULL) {
-      env->ThrowNew(OutOfMemoryErrorClass, "Unable to allocate String array for names or hosts.");
+      (*env)->ThrowNew(env, OutOfMemoryErrorClass, "Unable to allocate String array for names or hosts.");
       return NULL;
     }
 
-    env->SetObjectArrayElement(aryNames, 0, j_tmpname);
+    (*env)->SetObjectArrayElement(env, aryNames, 0, j_tmpname);
     ////TODO Hunt for ArrayIndex exceptions
     //exc = env->ExceptionOccurred();
     //if (exc) {
     //  //debug//debugstream << "Exception occurred.";
     //  return NULL;
     //}
-    env->SetObjectArrayElement(aryHosts, 0, j_tmphost);
+    (*env)->SetObjectArrayElement(env, aryHosts, 0, j_tmphost);
     ////Probably safe if the above one worked.
 
 
@@ -328,8 +329,8 @@ JNIEXPORT jobjectArray JNICALL Java_org_apache_hadoop_fs_CephLocalityFileSystem_
     //debug//debugstream << "imax-curoffset:  " << imax-curoffset << endl;
     blocklength = (imax-curoffset)<blocksize ? imax-curoffset : blocksize;  //TODO verify boundary condition on < vs. <=
     //debug//debugstream << "Block length:  " << blocklength << endl;
-    jobject tmpBlockLocation = env->NewObject(BlockLocationClass, constrid, aryNames, aryHosts, curoffset, blocklength);
-    env->SetObjectArrayElement(aryBlockLocations, i-loopinit, tmpBlockLocation);
+    jobject tmpBlockLocation = (*env)->NewObject(env, BlockLocationClass, constrid, aryNames, aryHosts, curoffset, blocklength);
+    (*env)->SetObjectArrayElement(env, aryBlockLocations, i-loopinit, tmpBlockLocation);
     //TODO Hunt for ArrayIndex exceptions
   }
   //Reminder:  i will be 1 too large after the loop finishes.  No need to add another 1.
