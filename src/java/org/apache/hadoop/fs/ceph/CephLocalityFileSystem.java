@@ -61,7 +61,7 @@ public class CephLocalityFileSystem extends RawLocalFileSystem {
   /**
    * Inherited from RawLocalFileSystem.java.
    */
-  static final URI NAME = URI.create("cephk:///");
+  static final URI NAME = URI.create("ceph:///");
 
   private static final Log LOG = LogFactory.getLog(CephLocalityFileSystem.class);
 
