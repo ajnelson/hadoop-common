@@ -85,7 +85,7 @@ long length        len
    TODO Clean up memory.  Some reading is here:
    http://java.sun.com/developer/onlineTraining/Programming/JDCBook/jniref.html
  */
-JNIEXPORT jobjectArray JNICALL Java_org_apache_hadoop_fs_CephLocalityFileSystem_getFileBlockLocations
+JNIEXPORT jobjectArray JNICALL Java_org_apache_hadoop_fs_ceph_CephLocalityFileSystem_getFileBlockLocations
   (JNIEnv *env, jobject obj, jobject j_file, jlong j_start, jlong j_len) {
 
   ////Variables
