@@ -115,6 +115,7 @@ public class CephLocalityFileSystem extends RawLocalFileSystem {
    * is to use a JNI call to open the file handle and another call to
    * destroy it.
    */
+  @Override
   public native BlockLocation[] getFileBlockLocations(FileStatus file, long start, long len) throws IOException;
 
   /**
