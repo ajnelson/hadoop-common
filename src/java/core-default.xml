@@ -235,6 +235,12 @@
 </property>
 
 <property>
+  <name>fs.ceph.impl</name>
+  <value>org.apache.hadoop.fs.ceph.CephLocalityFileSystem</value>
+  <description>The Ceph file system.</description>
+</property>
+
+<property>
   <name>fs.checkpoint.dir</name>
   <value>${hadoop.tmp.dir}/dfs/namesecondary</value>
   <description>Determines where on the local filesystem the DFS secondary

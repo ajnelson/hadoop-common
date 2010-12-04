@@ -35,6 +35,10 @@ import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.BlockLocation;
 import org.apache.hadoop.fs.RawLocalFileSystem;
 
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
+import org.apache.hadoop.util.NativeCodeLoader;
+
 /****************************************************************
  * Extend the RawFileSystem API for the Ceph filesystem.
  *
@@ -58,6 +62,14 @@ public class CephLocalityFileSystem extends RawLocalFileSystem {
    * Inherited from RawLocalFileSystem.java.
    */
   static final URI NAME = URI.create("cephk:///");
+
+  private static final Log LOG = LogFactory.getLog(CephLocalityFileSystem.class);
+
+  static {
+    if (!NativeCodeLoader.isNativeCodeLoaded()) {
+      LOG.warn("could not load native code");
+    }
+  }
 
   public CephLocalityFileSystem() {
     super();
@@ -149,6 +161,4 @@ public class CephLocalityFileSystem extends RawLocalFileSystem {
   public URI getUri() {
     return NAME;
   }
-
-  static{ System.loadLibrary("CephLocalityFileSystem"); }
 }
