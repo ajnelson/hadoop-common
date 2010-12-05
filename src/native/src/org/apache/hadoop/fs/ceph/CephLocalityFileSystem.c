@@ -114,14 +114,19 @@ Java_org_apache_hadoop_fs_ceph_CephLocalityFileSystem_getFileBlockLocations
 {
 	int fd;
 	const char *c_path;
-	long blocksize, numblocks;
 	struct ceph_ioctl_layout ceph_layout;
 	struct ceph_ioctl_dataloc dl;
+    __u64 offset_start, offset_base, offset_end;
+    __u64 len, total_len, stripe_unit, num_blocks, i;
+	__u64 block_start, block_end, stripe_end;
+	char hostbuf[NI_MAXHOST];
 
 	jclass StringClass;
 	jclass BlockLocationClass;
 	jmethodID constrid;
-	jobjectArray blocks;
+	jobject block;
+	jobjectArray hosts, names, blocks;
+	jstring host, name;
 	jlong fileLength;
 
 	StringClass = (*env)->FindClass(env, "java/lang/String");
@@ -139,10 +144,19 @@ Java_org_apache_hadoop_fs_ceph_CephLocalityFileSystem_getFileBlockLocations
 	if (!j_file)
 		return NULL;
 
-	if ((j_start < 0) || (j_len < 0)) {
+	/*
+	 * The striping algorithm below assumes len > 0
+	 * TODO:
+	 *   - Do any FileSystem users have len == 0 edge cases?
+	 */
+	if ((j_start < 0) || (j_len <= 0)) {
 		THROW(env, "java/lang/IllegalArgumentException", "Invalid start or len parameter");
 		return NULL;
 	}
+
+    /* Upgrade to 64-bits */
+    len = j_len;
+    offset_start = j_start;
 
 	if (get_file_length(env, j_file, &fileLength))
 		return NULL;
@@ -165,88 +179,84 @@ Java_org_apache_hadoop_fs_ceph_CephLocalityFileSystem_getFileBlockLocations
 	if (get_file_layout(env, fd, &ceph_layout))
 		return NULL;
 
-  blocksize=ceph_layout.object_size;  //TODO (big) Expose this object size to the Java file system.
-  //debug//debugstream << "Block size is " << blocksize << endl;
+    stripe_unit = ceph_layout.stripe_unit;
 
-  //Determine the number of blocks we're looking for.  (The problem:  How many buckets.  Can't remember if there's a library call to find this quickly...)
-  numblocks = (j_start+j_len-1)/blocksize - j_start/blocksize + 1;
-  //debug//debugstream << "Expecting to work on " << numblocks << " blocks." << endl;
+    /*
+     * Adjust for extents that span stripe units
+     */
+    offset_end = offset_start + len;
+    offset_base = offset_start - (offset_start % stripe_unit);
+    total_len = offset_end - offset_base;
+    num_blocks = total_len / stripe_unit;
+    
+    if (total_len % stripe_unit)
+        num_blocks++;
+    
+    blocks = (jobjectArray) (*env)->NewObjectArray(env, num_blocks, BlockLocationClass, NULL);
+    if (!blocks)
+        return NULL;
 
-  blocks = (jobjectArray) (*env)->NewObjectArray(env, numblocks, BlockLocationClass, NULL);
-  if (!blocks)
-	  return NULL;
+	block_start = offset_start;
 
-  //Run an ioctl for each block.
-  //jthrowable exc;
-  char buf[80];
-  jlong blocklength;
-  jlong curoffset;
-  //TODO This loop test will very probably suffer data races with updates to the file.  Oh; is that why ioctl() gets RDRW?
-  jlong loopinit=j_start/blocksize;
-  jlong i=loopinit;
-  jlong imax;
-  for (imax=j_start+j_len; i*blocksize < imax; i++) {
-    //Note <=; we go through the last requested byte.
-    //Set up the data location object
-    curoffset = i*blocksize;
-    //debug//debugstream << "Running dataloc ioctl loop for dl.file_offset=" << dl.file_offset << " (curoffset=" << curoffset << ")" << endl;
+	for (i = 0; i < num_blocks; i++) {
 
-	if (get_file_offset_location(env, fd, curoffset, &dl))
+		stripe_end = block_start + stripe_unit - (block_start % stripe_unit);
+		
+		if (offset_end < stripe_end)
+			block_end = offset_end;
+		else
+			block_end = stripe_end;
+
+		if (get_file_offset_location(env, fd, block_start, &dl))
+			return NULL;
+
+		memset(hostbuf, 0, sizeof(hostbuf));
+
+		if (getnameinfo((struct sockaddr *)&dl.osd_addr, sizeof(dl.osd_addr),
+					hostbuf, sizeof(hostbuf), NULL, 0, NI_NUMERICHOST)) {
+
+			THROW(env, "java/io/IOException", strerror(errno));
+			return NULL;
+		}
+
+		host = (*env)->NewStringUTF(env, hostbuf);
+		if (!host)
+			return NULL;
+
+		name = (*env)->NewStringUTF(env, ""); /* Java can re-assigns with port info */
+		if (!name)
+			return NULL;
+
+
+		hosts = (*env)->NewObjectArray(env, 1, StringClass, NULL);
+		if (!hosts)
+			return NULL;
+
+		names = (*env)->NewObjectArray(env, 1, StringClass, NULL);
+		if (!names)
+			return NULL;
+
+		(*env)->SetObjectArrayElement(env, names, 0, name);
+		if ((*env)->ExceptionCheck(env))
+			return NULL;
+
+		(*env)->SetObjectArrayElement(env, hosts, 0, host);
+		if ((*env)->ExceptionCheck(env))
+			return NULL;
+
+		block = (*env)->NewObject(env, BlockLocationClass, constrid, names, hosts, block_start, block_end - block_start);
+		if (!block)
+			return NULL;
+
+		(*env)->SetObjectArrayElement(env, blocks, i, block);
+		if ((*env)->ExceptionCheck(env))
+			return NULL;
+	}
+
+	if (close(fd) < 0) {
+		THROW(env, "java/io/IOException", strerror(errno));
 		return NULL;
-
-    //Create string object.
-    //TODO:  Check if freeing this causes a null pointer exception in Java.
-    //jstring j_tmpname = env->NewStringUTF("localhost:50010");
-    //jstring j_tmphost = env->NewStringUTF("localhost");
-    memset(buf, 0, 80);
-    getnameinfo((struct sockaddr *)&dl.osd_addr, sizeof(dl.osd_addr), buf, sizeof(buf), 0, 0, NI_NUMERICHOST);
-    //debug//debugstream << "Found host " << buf << endl;
-    jstring j_tmphost = (*env)->NewStringUTF(env, buf);
-	if (!j_tmphost)
-		return NULL;
-    //The names list should include the port number if following the example getFileBlockLocations from FileSystem;
-    //however, as of 0.20.2, nothing invokes BlockLocation.getNames().
-    jstring j_tmpname = (*env)->NewStringUTF(env, buf);
-	if (!j_tmpname)
-		return NULL;
-
-    //Define an array of strings for names, and one for hosts (only going to be one element long for now)
-    jobjectArray aryNames = (jobjectArray) (*env)->NewObjectArray(env, 1, StringClass, NULL);
-	if (!aryNames)
-		return NULL;
-
-    jobjectArray aryHosts = (jobjectArray) (*env)->NewObjectArray(env, 1, StringClass, NULL);
-	if (!aryHosts)
-		return NULL;
-
-    (*env)->SetObjectArrayElement(env, aryNames, 0, j_tmpname);
-    ////TODO Hunt for ArrayIndex exceptions
-    //exc = env->ExceptionOccurred();
-    //if (exc) {
-    //  //debug//debugstream << "Exception occurred.";
-    //  return NULL;
-    //}
-    (*env)->SetObjectArrayElement(env, aryHosts, 0, j_tmphost);
-    ////Probably safe if the above one worked.
-
-
-    //debug//debugstream << "imax:  " << imax << endl;
-    //debug//debugstream << "curoffset:  " << curoffset << endl;
-    //debug//debugstream << "blocksize:  " << blocksize << endl;
-    //debug//debugstream << "imax-curoffset:  " << imax-curoffset << endl;
-    blocklength = (imax-curoffset)<blocksize ? imax-curoffset : blocksize;  //TODO verify boundary condition on < vs. <=
-    //debug//debugstream << "Block length:  " << blocklength << endl;
-    jobject tmpBlockLocation = (*env)->NewObject(env, BlockLocationClass, constrid, aryNames, aryHosts, curoffset, blocklength);
-    (*env)->SetObjectArrayElement(env, blocks, i-loopinit, tmpBlockLocation);
-    //TODO Hunt for ArrayIndex exceptions
-  }
-  //Reminder:  i will be 1 too large after the loop finishes.  No need to add another 1.
-  //debug//debugstream << "Finished looping over " << (i-loopinit) << " of " << numblocks << " blocks." << endl;
-  //debug//debugstream << "(Makes " << ((i-loopinit)==numblocks ? "" : "no ") << "sense.)" << endl;
-
-  //Cleanup
-  close(fd);
-  //debug//debugstream.close();
-
-  return blocks; 
+	}
+	
+	return blocks; 
 }
