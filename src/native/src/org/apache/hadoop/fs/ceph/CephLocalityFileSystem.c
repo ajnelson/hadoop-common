@@ -158,6 +158,7 @@ JNIEXPORT jobjectArray JNICALL Java_org_apache_hadoop_fs_ceph_CephLocalityFileSy
   jmethodID methodid_getPathStringFromFileStatus;
   jclass BlockLocationClass, StringClass, CephLocalityFileSystemClass;
   jobjectArray aryBlockLocations;  //Returning item
+  jobjectArray blocks;
   jstring j_path;
   jlong fileLength;
   jclass IOExceptionClass, OutOfMemoryErrorClass;
@@ -229,27 +230,17 @@ JNIEXPORT jobjectArray JNICALL Java_org_apache_hadoop_fs_ceph_CephLocalityFileSy
     (*env)->ThrowNew(env, IOExceptionClass, "ERROR:  Could not get methodid_getPathStringFromFileStatus.");
     return NULL;
   }
-  //debug//debugstream << "methodid_getPathStringFromFileStatus retrieval complete." << endl;
 
 
-  ////Calling methods
-  //Grab the file length
-  
+	blocks = (*env)->NewObjectArray(env, 0, BlockLocationClass, NULL);
+	if (!blocks)
+		return;
+
 	if (get_file_length(env, j_file, &fileLength))
 		return NULL;
 
-  //debug//debugstream << "Called fileLen()." << endl;
-  //One last sanity check
-  if (fileLength < j_start) {
-    //debug//debugstream << "Starting point after end of file; returning 0 block locations." << endl;
-    aryBlockLocations = (*env)->NewObjectArray(env, 0, BlockLocationClass, NULL);
-    if (aryBlockLocations == NULL) {
-      (*env)->ThrowNew(env, OutOfMemoryErrorClass,"Unable to allocate 0-length BlockLocation array.");
-      return NULL;
-    }
-    return aryBlockLocations;
-  }
-  //debug//debugstream << "File length according to FileStatus:  " << fileLength << endl;
+	if (fileLength < j_start)
+		return blocks;
 
   //Grab the file name
   j_path = (jstring) (*env)->CallObjectMethod(env, obj, methodid_getPathStringFromFileStatus, j_file);
