@@ -464,7 +464,7 @@ ac_includes_default="\
 # include <unistd.h>
 #endif"
 
-ac_subst_vars='SHELL PATH_SEPARATOR PACKAGE_NAME PACKAGE_TARNAME PACKAGE_VERSION PACKAGE_STRING PACKAGE_BUGREPORT exec_prefix prefix program_transform_name bindir sbindir libexecdir datadir sysconfdir sharedstatedir localstatedir libdir includedir oldincludedir infodir mandir build_alias host_alias target_alias DEFS ECHO_C ECHO_N ECHO_T LIBS INSTALL_PROGRAM INSTALL_SCRIPT INSTALL_DATA CYGPATH_W PACKAGE VERSION ACLOCAL AUTOCONF AUTOMAKE AUTOHEADER MAKEINFO install_sh STRIP ac_ct_STRIP INSTALL_STRIP_PROGRAM mkdir_p AWK SET_MAKE am__leading_dot AMTAR am__tar am__untar CC CFLAGS LDFLAGS CPPFLAGS ac_ct_CC EXEEXT OBJEXT DEPDIR am__include am__quote AMDEP_TRUE AMDEP_FALSE AMDEPBACKSLASH CCDEPMODE am__fastdepCC_TRUE am__fastdepCC_FALSE build build_cpu build_vendor build_os host host_cpu host_vendor host_os EGREP LN_S ECHO AR ac_ct_AR RANLIB ac_ct_RANLIB CPP CXX CXXFLAGS ac_ct_CXX CXXDEPMODE am__fastdepCXX_TRUE am__fastdepCXX_FALSE CXXCPP F77 FFLAGS ac_ct_F77 LIBTOOL JNI_LDFLAGS JNI_CPPFLAGS LIBOBJS LTLIBOBJS'
+ac_subst_vars='SHELL PATH_SEPARATOR PACKAGE_NAME PACKAGE_TARNAME PACKAGE_VERSION PACKAGE_STRING PACKAGE_BUGREPORT exec_prefix prefix program_transform_name bindir sbindir libexecdir datadir sysconfdir sharedstatedir localstatedir libdir includedir oldincludedir infodir mandir build_alias host_alias target_alias DEFS ECHO_C ECHO_N ECHO_T LIBS INSTALL_PROGRAM INSTALL_SCRIPT INSTALL_DATA CYGPATH_W PACKAGE VERSION ACLOCAL AUTOCONF AUTOMAKE AUTOHEADER MAKEINFO install_sh STRIP ac_ct_STRIP INSTALL_STRIP_PROGRAM mkdir_p AWK SET_MAKE am__leading_dot AMTAR am__tar am__untar CC CFLAGS LDFLAGS CPPFLAGS ac_ct_CC EXEEXT OBJEXT DEPDIR am__include am__quote AMDEP_TRUE AMDEP_FALSE AMDEPBACKSLASH CCDEPMODE am__fastdepCC_TRUE am__fastdepCC_FALSE build build_cpu build_vendor build_os host host_cpu host_vendor host_os EGREP LN_S ECHO AR ac_ct_AR RANLIB ac_ct_RANLIB CPP CXX CXXFLAGS ac_ct_CXX CXXDEPMODE am__fastdepCXX_TRUE am__fastdepCXX_FALSE CXXCPP F77 FFLAGS ac_ct_F77 LIBTOOL JNI_LDFLAGS JNI_CPPFLAGS CEPH_SRCDIR_PATH BUILD_CEPH_NATIVE_TRUE BUILD_CEPH_NATIVE_FALSE LIBOBJS LTLIBOBJS'
 ac_subst_files=''
 
 # Initialize some variables set by options.
@@ -19934,9 +19934,11 @@ else
       ac_cv_libname_z="`objdump -p conftest | grep NEEDED | grep z | sed 's/\W*NEEDED\W*\(.*\)\W*$/\"\1\"/'`"
     elif test ! -z "`which ldd | grep -v 'no ldd'`"; then
       ac_cv_libname_z="`ldd conftest | grep z | sed 's/^[^A-Za-z0-9]*\([A-Za-z0-9\.]*\)[^A-Za-z0-9]*=>.*$/\"\1\"/'`"
+    elif test ! -z "`which otool | grep -v 'no otool'`"; then
+      ac_cv_libname_z=\"`otool -L conftest | grep z | sed -e 's/^	 *//' -e 's/ .*//' -e 's/.*\/\(.*\)$/\1/'`\";
     else
-      { { echo "$as_me:$LINENO: error: Can't find either 'objdump' or 'ldd' to compute the dynamic library for '-lz'" >&5
-echo "$as_me: error: Can't find either 'objdump' or 'ldd' to compute the dynamic library for '-lz'" >&2;}
+      { { echo "$as_me:$LINENO: error: Can't find either 'objdump' or 'ldd' or 'otool' to compute the dynamic library for '-lz'" >&5
+echo "$as_me: error: Can't find either 'objdump' or 'ldd' or 'otool' to compute the dynamic library for '-lz'" >&2;}
    { (exit 1); exit 1; }; }
     fi
   else
@@ -20176,7 +20178,23 @@ fi
 done
 
 
-                              ac_config_files="$ac_config_files Makefile src/org/apache/hadoop/io/compress/zlib/Makefile lib/Makefile"
+CEPH_SRCDIR_PATH=""
+if test x$HADOOP_NATIVE_CEPH_SRCDIR != x""; then
+  CEPH_SRCDIR_PATH="$HADOOP_NATIVE_CEPH_SRCDIR"
+fi
+
+
+
+if test x$CEPH_SRCDIR_PATH != x""; then
+  BUILD_CEPH_NATIVE_TRUE=
+  BUILD_CEPH_NATIVE_FALSE='#'
+else
+  BUILD_CEPH_NATIVE_TRUE='#'
+  BUILD_CEPH_NATIVE_FALSE=
+fi
+
+
+                                        ac_config_files="$ac_config_files Makefile src/org/apache/hadoop/io/compress/zlib/Makefile src/org/apache/hadoop/fs/ceph/Makefile lib/Makefile"
 
 cat >confcache <<\_ACEOF
 # This file is a shell script that caches the results of configure
@@ -20287,6 +20305,13 @@ if test -z "${am__fastdepCXX_TRUE}" && test -z "${am__fastdepCXX_FALSE}"; then
   { { echo "$as_me:$LINENO: error: conditional \"am__fastdepCXX\" was never defined.
 Usually this means the macro was only invoked conditionally." >&5
 echo "$as_me: error: conditional \"am__fastdepCXX\" was never defined.
+Usually this means the macro was only invoked conditionally." >&2;}
+   { (exit 1); exit 1; }; }
+fi
+if test -z "${BUILD_CEPH_NATIVE_TRUE}" && test -z "${BUILD_CEPH_NATIVE_FALSE}"; then
+  { { echo "$as_me:$LINENO: error: conditional \"BUILD_CEPH_NATIVE\" was never defined.
+Usually this means the macro was only invoked conditionally." >&5
+echo "$as_me: error: conditional \"BUILD_CEPH_NATIVE\" was never defined.
 Usually this means the macro was only invoked conditionally." >&2;}
    { (exit 1); exit 1; }; }
 fi
@@ -20736,6 +20761,7 @@ do
   # Handling of arguments.
   "Makefile" ) CONFIG_FILES="$CONFIG_FILES Makefile" ;;
   "src/org/apache/hadoop/io/compress/zlib/Makefile" ) CONFIG_FILES="$CONFIG_FILES src/org/apache/hadoop/io/compress/zlib/Makefile" ;;
+  "src/org/apache/hadoop/fs/ceph/Makefile" ) CONFIG_FILES="$CONFIG_FILES src/org/apache/hadoop/fs/ceph/Makefile" ;;
   "lib/Makefile" ) CONFIG_FILES="$CONFIG_FILES lib/Makefile" ;;
   "depfiles" ) CONFIG_COMMANDS="$CONFIG_COMMANDS depfiles" ;;
   "config.h" ) CONFIG_HEADERS="$CONFIG_HEADERS config.h" ;;
@@ -20891,6 +20917,9 @@ s,@ac_ct_F77@,$ac_ct_F77,;t t
 s,@LIBTOOL@,$LIBTOOL,;t t
 s,@JNI_LDFLAGS@,$JNI_LDFLAGS,;t t
 s,@JNI_CPPFLAGS@,$JNI_CPPFLAGS,;t t
+s,@CEPH_SRCDIR_PATH@,$CEPH_SRCDIR_PATH,;t t
+s,@BUILD_CEPH_NATIVE_TRUE@,$BUILD_CEPH_NATIVE_TRUE,;t t
+s,@BUILD_CEPH_NATIVE_FALSE@,$BUILD_CEPH_NATIVE_FALSE,;t t
 s,@LIBOBJS@,$LIBOBJS,;t t
 s,@LTLIBOBJS@,$LTLIBOBJS,;t t
 CEOF

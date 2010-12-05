@@ -14,43 +14,7 @@
 
 @SET_MAKE@
 
-#
-# Licensed to the Apache Software Foundation (ASF) under one
-# or more contributor license agreements.  See the NOTICE file
-# distributed with this work for additional information
-# regarding copyright ownership.  The ASF licenses this file
-# to you under the Apache License, Version 2.0 (the
-# "License"); you may not use this file except in compliance
-# with the License.  You may obtain a copy of the License at
-#
-#     http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
-#
-
-#
-# Makefile template for building native 'zlib' for hadoop.
-#
-
-#
-# Notes: 
-# 1. This makefile is designed to do the actual builds in $(HADOOP_HOME)/build/native/${os.name}-${os.arch}/$(subdir) .
-# 2. This makefile depends on the following environment variables to function correctly:
-#    * HADOOP_NATIVE_SRCDIR 
-#    * JAVA_HOME
-#    * JVM_DATA_MODEL
-#    * OS_ARCH 
-#    * PLATFORM
-#    All these are setup by build.xml and/or the top-level makefile.
-# 3. The creation of requisite jni headers/stubs are also done by build.xml and they are
-#    assumed to be in $(HADOOP_HOME)/build/native/src/org/apache/hadoop/io/compress/zlib.
-#
-
-SOURCES = $(libnativezlib_la_SOURCES)
+SOURCES = $(libnativeceph_la_SOURCES)
 
 srcdir = @srcdir@
 top_srcdir = @top_srcdir@
@@ -58,7 +22,7 @@ VPATH = @srcdir@
 pkgdatadir = $(datadir)/@PACKAGE@
 pkglibdir = $(libdir)/@PACKAGE@
 pkgincludedir = $(includedir)/@PACKAGE@
-top_builddir = ../../../../../../..
+top_builddir = ../../../../../..
 am__cd = CDPATH="$${ZSH_VERSION+.}$(PATH_SEPARATOR)" && cd
 INSTALL = @INSTALL@
 install_sh_DATA = $(install_sh) -c -m 644
@@ -74,7 +38,7 @@ PRE_UNINSTALL = :
 POST_UNINSTALL = :
 build_triplet = @build@
 host_triplet = @host@
-subdir = src/org/apache/hadoop/io/compress/zlib
+subdir = src/org/apache/hadoop/fs/ceph
 DIST_COMMON = $(srcdir)/Makefile.am $(srcdir)/Makefile.in
 ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
 am__aclocal_m4_deps = $(top_srcdir)/acinclude.m4 \
@@ -85,9 +49,9 @@ mkinstalldirs = $(install_sh) -d
 CONFIG_HEADER = $(top_builddir)/config.h
 CONFIG_CLEAN_FILES =
 LTLIBRARIES = $(noinst_LTLIBRARIES)
-libnativezlib_la_DEPENDENCIES =
-am_libnativezlib_la_OBJECTS = ZlibCompressor.lo ZlibDecompressor.lo
-libnativezlib_la_OBJECTS = $(am_libnativezlib_la_OBJECTS)
+libnativeceph_la_DEPENDENCIES =
+am_libnativeceph_la_OBJECTS = CephLocalityFileSystem.lo
+libnativeceph_la_OBJECTS = $(am_libnativeceph_la_OBJECTS)
 DEFAULT_INCLUDES = -I. -I$(srcdir) -I$(top_builddir)
 depcomp = $(SHELL) $(top_srcdir)/config/depcomp
 am__depfiles_maybe = depfiles
@@ -99,8 +63,8 @@ LTCOMPILE = $(LIBTOOL) --mode=compile --tag=CC $(CC) $(DEFS) \
 CCLD = $(CC)
 LINK = $(LIBTOOL) --mode=link --tag=CC $(CCLD) $(AM_CFLAGS) $(CFLAGS) \
 	$(AM_LDFLAGS) $(LDFLAGS) -o $@
-SOURCES = $(libnativezlib_la_SOURCES)
-DIST_SOURCES = $(libnativezlib_la_SOURCES)
+SOURCES = $(libnativeceph_la_SOURCES)
+DIST_SOURCES = $(libnativeceph_la_SOURCES)
 ETAGS = etags
 CTAGS = ctags
 DISTFILES = $(DIST_COMMON) $(DIST_SOURCES) $(TEXINFOS) $(EXTRA_DIST)
@@ -205,12 +169,12 @@ sbindir = @sbindir@
 sharedstatedir = @sharedstatedir@
 sysconfdir = @sysconfdir@
 target_alias = @target_alias@
-AM_CPPFLAGS = @JNI_CPPFLAGS@ -I$(HADOOP_NATIVE_SRCDIR)/src
+AM_CPPFLAGS = @JNI_CPPFLAGS@ -I$(HADOOP_NATIVE_SRCDIR)/src -I@CEPH_SRCDIR_PATH@/src
 AM_LDFLAGS = @JNI_LDFLAGS@
 AM_CFLAGS = -g -Wall -fPIC -O2 -m$(JVM_DATA_MODEL)
-noinst_LTLIBRARIES = libnativezlib.la
-libnativezlib_la_SOURCES = ZlibCompressor.c ZlibDecompressor.c
-libnativezlib_la_LIBADD = -ldl -ljvm
+noinst_LTLIBRARIES = libnativeceph.la
+libnativeceph_la_SOURCES = CephLocalityFileSystem.c 
+libnativeceph_la_LIBADD = -ldl -ljvm
 all: all-am
 
 .SUFFIXES:
@@ -224,9 +188,9 @@ $(srcdir)/Makefile.in:  $(srcdir)/Makefile.am  $(am__configure_deps)
 	      exit 1;; \
 	  esac; \
 	done; \
-	echo ' cd $(top_srcdir) && $(AUTOMAKE) --gnu  src/org/apache/hadoop/io/compress/zlib/Makefile'; \
+	echo ' cd $(top_srcdir) && $(AUTOMAKE) --gnu  src/org/apache/hadoop/fs/ceph/Makefile'; \
 	cd $(top_srcdir) && \
-	  $(AUTOMAKE) --gnu  src/org/apache/hadoop/io/compress/zlib/Makefile
+	  $(AUTOMAKE) --gnu  src/org/apache/hadoop/fs/ceph/Makefile
 .PRECIOUS: Makefile
 Makefile: $(srcdir)/Makefile.in $(top_builddir)/config.status
 	@case '$?' in \
@@ -253,8 +217,8 @@ clean-noinstLTLIBRARIES:
 	  echo "rm -f \"$${dir}/so_locations\""; \
 	  rm -f "$${dir}/so_locations"; \
 	done
-libnativezlib.la: $(libnativezlib_la_OBJECTS) $(libnativezlib_la_DEPENDENCIES) 
-	$(LINK)  $(libnativezlib_la_LDFLAGS) $(libnativezlib_la_OBJECTS) $(libnativezlib_la_LIBADD) $(LIBS)
+libnativeceph.la: $(libnativeceph_la_OBJECTS) $(libnativeceph_la_DEPENDENCIES) 
+	$(LINK)  $(libnativeceph_la_LDFLAGS) $(libnativeceph_la_OBJECTS) $(libnativeceph_la_LIBADD) $(LIBS)
 
 mostlyclean-compile:
 	-rm -f *.$(OBJEXT)
@@ -262,8 +226,7 @@ mostlyclean-compile:
 distclean-compile:
 	-rm -f *.tab.c
 
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/ZlibCompressor.Plo@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/ZlibDecompressor.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/CephLocalityFileSystem.Plo@am__quote@
 
 .c.o:
 @am__fastdepCC_TRUE@	if $(COMPILE) -MT $@ -MD -MP -MF "$(DEPDIR)/$*.Tpo" -c -o $@ $<; \
@@ -462,13 +425,7 @@ uninstall-am: uninstall-info-am
 	pdf pdf-am ps ps-am tags uninstall uninstall-am \
 	uninstall-info-am
 
-
-# The 'vpath directive' to locate the actual source files 
 vpath %.c $(HADOOP_NATIVE_SRCDIR)/$(subdir)
-
-#
-#vim: sw=4: ts=4: noet
-#
 # Tell versions [3.59,3.63) of GNU make to not export all variables.
 # Otherwise a system limit (for SysV at least) may be exceeded.
 .NOEXPORT:
