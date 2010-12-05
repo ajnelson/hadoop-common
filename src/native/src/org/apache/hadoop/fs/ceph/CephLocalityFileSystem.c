@@ -71,6 +71,17 @@ static int get_file_layout(JNIEnv *env, int fd, struct ceph_ioctl_layout *layout
 	return 0;
 }
 
+static int open_ceph_file(JNIEnv *env, const char *path)
+{
+	int fd;
+
+	fd = open(path, O_RDONLY);
+	if (fd < 0)
+		THROW(env, "java/io/IOException", strerror(errno));
+	
+	return fd;
+}
+
 /**
  * Arguments:  (FileStatus file, long start, long len)
   Exemplar code:  Java_org_apache_hadoop_fs_ceph_CephTalker_ceph_1getdir
@@ -227,15 +238,10 @@ JNIEXPORT jobjectArray JNICALL Java_org_apache_hadoop_fs_ceph_CephLocalityFileSy
   }
   //debug//debugstream << "c_path path is " << c_path << endl;
 
+  fd = open_ceph_file(env, c_path);
+  if (fd < 0)
+	  return NULL;
 
-  ////Really-native code:  Start the file I/O.
-  //Open the file (need descriptor for ioctl())
-  fd = open(c_path , O_CREAT|O_RDWR, 0644);  //TODO Not sure why this opens RDRW and CREAT (code copied from Ceph test).  Necessary for ioctl?
-  if (fd <= 0) {
-    (*env)->ThrowNew(env, IOExceptionClass, "Couldn't open file.");
-    //debug//debugstream << "ERROR:  Couldn't open file.  errno:  " << strerror(errno) << ".  fd:  " << strerror(fd) << endl;  //TODO Clean this up.
-    return NULL;
-  }
   //debug//debugstream << "File opening complete." << endl;
   //Cleanup:  Don't need file name characters anymore.
   (*env)->ReleaseStringUTFChars(env, j_path, c_path);
