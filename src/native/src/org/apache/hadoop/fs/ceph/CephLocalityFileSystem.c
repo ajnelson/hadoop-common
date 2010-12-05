@@ -113,7 +113,6 @@ JNIEXPORT jobjectArray JNICALL Java_org_apache_hadoop_fs_ceph_CephLocalityFileSy
   //debug//const char *logpath = "/home/alex/TestGetFileBlockLocations.txt";
   const char *c_path = "";
   int fd, err;
-  long c_start, c_len;
   long blocksize, numblocks;
   struct ceph_ioctl_layout ceph_layout;
   struct ceph_ioctl_dataloc dl;
@@ -123,19 +122,17 @@ JNIEXPORT jobjectArray JNICALL Java_org_apache_hadoop_fs_ceph_CephLocalityFileSy
   jmethodID constrid;              //This can probably be cached ( http://www.ibm.com/developerworks/java/library/j-jni/ )
   jmethodID filelenid;
   jmethodID methodid_getPathStringFromFileStatus;
-  jfieldID pathfieldid;
   jclass BlockLocationClass, StringClass, FileStatusClass, CephLocalityFileSystemClass;
   jobjectArray aryBlockLocations;  //Returning item
   jstring j_path;
   jlong fileLength;
-  jclass IllegalArgumentExceptionClass, IOExceptionClass, OutOfMemoryErrorClass;
+  jclass IOExceptionClass, OutOfMemoryErrorClass;
 
 
   ////Debugging
   //Setup
   time_t rawtime;
   time(&rawtime);
-  struct tm *timeinfo = localtime(&rawtime);
   //debug//ofstream debugstream(logpath, ios_base::app);
   //debug//debugstream << "Starting.  Current time:  " << asctime(timeinfo) << "." << endl;
   //debug//debugstream << "Arguments:  <j_file>, " << j_start << ", " << j_len << endl;
@@ -143,10 +140,9 @@ JNIEXPORT jobjectArray JNICALL Java_org_apache_hadoop_fs_ceph_CephLocalityFileSy
 
 
   ////Grab the exception classes for all the little things that can go wrong.
-  IllegalArgumentExceptionClass = (*env)->FindClass(env, "java/lang/IllegalArgumentException");
   IOExceptionClass = (*env)->FindClass(env, "java/io/IOException");
   OutOfMemoryErrorClass = (*env)->FindClass(env, "java/lang/OutOfMemoryError");
-  if (IllegalArgumentExceptionClass == NULL || IOExceptionClass == NULL || OutOfMemoryErrorClass == NULL) {
+  if (IOExceptionClass == NULL || OutOfMemoryErrorClass == NULL) {
     //debug//debugstream << "Failed to get an exception to throw.  Giving up." << endl;
     return NULL;
   }
