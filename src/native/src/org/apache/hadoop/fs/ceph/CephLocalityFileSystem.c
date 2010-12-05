@@ -15,65 +15,26 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
-/**
-This file's main function was originally in
-$CEPH_HOME/src/client/test_ioctls.c .
-
-In the present form, it converts ceph_ioctl_dataloc to BlockLocations.
-
-BlockLocations require:
-String[] names, String[] hosts, long offset, long length
-
-The ceph_ioctl_dataloc supplies:
-struct ceph_ioctl_dataloc {
-	__u64 file_offset;           // in+out: file offset
-	__u64 object_offset;         // out: offset in object
-	__u64 object_no;             // out: object #
-	__u64 object_size;           // out: object size
-	char object_name[64];        // out: object name
-	__u64 block_offset;          // out: offset in block
-	__u64 block_size;            // out: block length
-	__s64 osd;                   // out: osd #
-	struct sockaddr_storage osd_addr; // out: osd address
-};
-
-
-The required items and the supplied items line up like so:
-String[] names     dataloc.osd_addr
-String[] hosts     dataloc.osd_addr
-long offset        start
-long length        len
-*/
-
-#include <stdlib.h>
-#include <stdio.h>
-#include <unistd.h>
 #include <sys/types.h>
 #include <sys/stat.h>
-#include <fcntl.h>
-
 #include <sys/ioctl.h>
-#include <netinet/in.h>
 #include <sys/socket.h>
+#include <unistd.h>
+#include <fcntl.h>
+#include <errno.h>
+#include <string.h>
 #include <netdb.h>
 
-#include <string.h>  //memset
-
-#include <errno.h>
-
-#include <time.h>    //Debugging
-//#include <iostream>  //Debugging
-//#include <fstream>   //Debugging
-//using namespace std; //Debugging
+#include "client/ioctl.h"
 
 #include "org_apache_hadoop.h"
-
-//JNI include
 #include "org_apache_hadoop_fs_ceph_CephLocalityFileSystem.h"
 
-//Ceph includes
-#include "client/ioctl.h"
+/*
+ * TODO:
+ *   - strerror is not thread safe
+ *   - add conditional debug statements
+ */
 
 static int get_file_length(JNIEnv *env, jobject j_file, jlong *len)
 {
@@ -165,8 +126,6 @@ JNIEXPORT jobjectArray JNICALL Java_org_apache_hadoop_fs_ceph_CephLocalityFileSy
 
   ////Debugging
   //Setup
-  time_t rawtime;
-  time(&rawtime);
   //debug//ofstream debugstream(logpath, ios_base::app);
   //debug//debugstream << "Starting.  Current time:  " << asctime(timeinfo) << "." << endl;
   //debug//debugstream << "Arguments:  <j_file>, " << j_start << ", " << j_len << endl;
