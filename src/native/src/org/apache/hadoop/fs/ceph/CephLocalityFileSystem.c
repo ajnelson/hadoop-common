@@ -101,6 +101,19 @@ out:
 	return ret;
 }
 
+static int get_file_layout(JNIEnv *env, int fd, struct ceph_ioctl_layout *layout)
+{
+	int err;
+
+	err = ioctl(fd, CEPH_IOC_GET_LAYOUT, layout);
+	if (err < 0) {
+		THROW(env, "java/io/IOException", strerror(errno));
+		return err;
+	}
+
+	return 0;
+}
+
 /**
  * Arguments:  (FileStatus file, long start, long len)
   Exemplar code:  Java_org_apache_hadoop_fs_ceph_CephTalker_ceph_1getdir
@@ -272,12 +285,9 @@ JNIEXPORT jobjectArray JNICALL Java_org_apache_hadoop_fs_ceph_CephLocalityFileSy
   //Cleanup:  Don't need file name characters anymore.
   (*env)->ReleaseStringUTFChars(env, j_path, c_path);
 
-  //Get layout
-  err = ioctl(fd, CEPH_IOC_GET_LAYOUT, (unsigned long)&ceph_layout);
-  if (err) {
-    (*env)->ThrowNew(env, IOExceptionClass, "ioctl failed (layout).");
-    return NULL;
-  }
+	if (get_file_layout(env, fd, &ceph_layout))
+		return NULL;
+
   blocksize=ceph_layout.object_size;  //TODO (big) Expose this object size to the Java file system.
   //debug//debugstream << "Block size is " << blocksize << endl;
 
