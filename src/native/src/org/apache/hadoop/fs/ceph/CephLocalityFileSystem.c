@@ -154,7 +154,7 @@ JNIEXPORT jobjectArray JNICALL Java_org_apache_hadoop_fs_ceph_CephLocalityFileSy
 
   //Java...
   jmethodID constrid;              //This can probably be cached ( http://www.ibm.com/developerworks/java/library/j-jni/ )
-  jclass BlockLocationClass, StringClass, CephLocalityFileSystemClass;
+  jclass BlockLocationClass, StringClass;
   jobjectArray aryBlockLocations;  //Returning item
   jlong fileLength;
   jclass IOExceptionClass, OutOfMemoryErrorClass;
@@ -187,22 +187,6 @@ JNIEXPORT jobjectArray JNICALL Java_org_apache_hadoop_fs_ceph_CephLocalityFileSy
 		THROW(env, "java/lang/ClassNotFoundException", "org/apache/hadoop/fs/BlockLocation");
 		return NULL;
 	}
-
-  CephLocalityFileSystemClass = (*env)->GetObjectClass(env, obj);
-  if (CephLocalityFileSystemClass == NULL) {
-    (*env)->ThrowNew(env, IOExceptionClass, "Hadoop CephLocalityFileSystemClass class not found.");
-    return NULL;
-  }
-
-  //debug//debugstream << "Classes retrieved." << endl;
-
-
-  ////Grab class methods and members
-  //(Type syntax reference: http://java.sun.com/javase/6/docs/technotes/guides/jni/spec/types.html#wp16432 )
-
-  //Grab the file length method
-
-  //debug//debugstream << "filelenid retrieval complete." << endl;
 
   //Grab the BlockLocation constructor
   constrid = (*env)->GetMethodID(env, BlockLocationClass, "<init>", "([Ljava/lang/String;[Ljava/lang/String;JJ)V");
