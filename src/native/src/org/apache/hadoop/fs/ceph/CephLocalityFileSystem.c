@@ -156,16 +156,6 @@ Java_org_apache_hadoop_fs_ceph_CephLocalityFileSystem_getFileBlockLocations
 	jmethodID constrid;
 	jobjectArray blocks;
 	jlong fileLength;
-	jclass IOExceptionClass, OutOfMemoryErrorClass;
-
-
-  ////Grab the exception classes for all the little things that can go wrong.
-  IOExceptionClass = (*env)->FindClass(env, "java/io/IOException");
-  OutOfMemoryErrorClass = (*env)->FindClass(env, "java/lang/OutOfMemoryError");
-  if (IOExceptionClass == NULL || OutOfMemoryErrorClass == NULL) {
-    //debug//debugstream << "Failed to get an exception to throw.  Giving up." << endl;
-    return NULL;
-  }
 
 	if (!j_file)
 		return NULL;
@@ -187,13 +177,9 @@ Java_org_apache_hadoop_fs_ceph_CephLocalityFileSystem_getFileBlockLocations
 		return NULL;
 	}
 
-  //Grab the BlockLocation constructor
-  constrid = (*env)->GetMethodID(env, BlockLocationClass, "<init>", "([Ljava/lang/String;[Ljava/lang/String;JJ)V");
-  if (constrid == NULL) {
-    (*env)->ThrowNew(env, IOExceptionClass, "Could not get constructor id for BlockLocationClass.");
-    return NULL;
-  }
-  //debug//debugstream << "constrid retrieval complete." << endl;
+	constrid = (*env)->GetMethodID(env, BlockLocationClass, "<init>", "([Ljava/lang/String;[Ljava/lang/String;JJ)V");
+	if (!constrid)
+	  return NULL;
 
 	if (get_file_length(env, j_file, &fileLength))
 		return NULL;
@@ -224,10 +210,8 @@ Java_org_apache_hadoop_fs_ceph_CephLocalityFileSystem_getFileBlockLocations
   //debug//debugstream << "Expecting to work on " << numblocks << " blocks." << endl;
 
   blocks = (jobjectArray) (*env)->NewObjectArray(env, numblocks, BlockLocationClass, NULL);
-  if (blocks == NULL) {
-    (*env)->ThrowNew(env, OutOfMemoryErrorClass, "Unable to allocate BlockLocation array.");
-    return NULL;
-  }
+  if (!blocks)
+	  return NULL;
 
   //Run an ioctl for each block.
   //jthrowable exc;
@@ -255,21 +239,22 @@ Java_org_apache_hadoop_fs_ceph_CephLocalityFileSystem_getFileBlockLocations
     getnameinfo((struct sockaddr *)&dl.osd_addr, sizeof(dl.osd_addr), buf, sizeof(buf), 0, 0, NI_NUMERICHOST);
     //debug//debugstream << "Found host " << buf << endl;
     jstring j_tmphost = (*env)->NewStringUTF(env, buf);
+	if (!j_tmphost)
+		return NULL;
     //The names list should include the port number if following the example getFileBlockLocations from FileSystem;
     //however, as of 0.20.2, nothing invokes BlockLocation.getNames().
     jstring j_tmpname = (*env)->NewStringUTF(env, buf);
-    if (j_tmphost == NULL || j_tmpname == NULL) {
-      (*env)->ThrowNew(env, OutOfMemoryErrorClass, "Unable to convert String for name or host.");
-      return NULL;
-    }
+	if (!j_tmpname)
+		return NULL;
 
     //Define an array of strings for names, and one for hosts (only going to be one element long for now)
     jobjectArray aryNames = (jobjectArray) (*env)->NewObjectArray(env, 1, StringClass, NULL);
+	if (!aryNames)
+		return NULL;
+
     jobjectArray aryHosts = (jobjectArray) (*env)->NewObjectArray(env, 1, StringClass, NULL);
-    if (aryHosts == NULL || aryNames == NULL) {
-      (*env)->ThrowNew(env, OutOfMemoryErrorClass, "Unable to allocate String array for names or hosts.");
-      return NULL;
-    }
+	if (!aryHosts)
+		return NULL;
 
     (*env)->SetObjectArrayElement(env, aryNames, 0, j_tmpname);
     ////TODO Hunt for ArrayIndex exceptions
