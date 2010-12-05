@@ -183,18 +183,18 @@ JNIEXPORT jobjectArray JNICALL Java_org_apache_hadoop_fs_ceph_CephLocalityFileSy
 		return NULL;
 	}
 
+	StringClass = (*env)->FindClass(env, "java/lang/String");
+	if (!StringClass) {
+		THROW(env, "java/lang/ClassNotFoundException", "java/lang/String not found");
+		return NULL;
+	}
 
-  ////Grab the reference to the Java classes needed to set up end structure
-  StringClass = (*env)->FindClass(env, "java/lang/String");
-  if (StringClass == NULL) {
-    (*env)->ThrowNew(env, IOExceptionClass, "Java String class not found; dying a horrible, painful death.");
-    return NULL;
-  }
-  BlockLocationClass = (*env)->FindClass(env, "org/apache/hadoop/fs/BlockLocation");
-  if (BlockLocationClass == NULL) {
-    (*env)->ThrowNew(env, IOExceptionClass, "Hadoop BlockLocation class not found.");
-    return NULL;
-  }
+	BlockLocationClass = (*env)->FindClass(env, "org/apache/hadoop/fs/BlockLocation");
+	if (!BlockLocationClass) {
+		THROW(env, "java/lang/ClassNotFoundException", "org/apache/hadoop/fs/BlockLocation");
+		return NULL;
+	}
+
   CephLocalityFileSystemClass = (*env)->GetObjectClass(env, obj);
   if (CephLocalityFileSystemClass == NULL) {
     (*env)->ThrowNew(env, IOExceptionClass, "Hadoop CephLocalityFileSystemClass class not found.");
