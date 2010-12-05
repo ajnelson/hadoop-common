@@ -239,6 +239,8 @@
     <pathelement location="${build.dir}"/>
   </path>
 
+  <!-- Default Ceph native source directory -->
+  <property name="native.ceph.srcdir" value=""/>
 
   <!-- ====================================================== -->
   <!-- Macro definitions                                      -->
@@ -391,6 +393,7 @@
 	  <env key="OS_ARCH" value="${os.arch}"/>
 	  <env key="JVM_DATA_MODEL" value="${sun.arch.data.model}"/>
 	  <env key="HADOOP_NATIVE_SRCDIR" value="${native.src.dir}"/>
+	  <env key="HADOOP_NATIVE_CEPH_SRCDIR" value="${native.ceph.srcdir}"/>
 	  <arg line="${native.src.dir}/configure"/>
     </exec>
 

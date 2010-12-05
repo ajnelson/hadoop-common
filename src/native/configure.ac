@@ -92,6 +92,14 @@ AC_C_CONST
 # Checks for library functions.
 AC_CHECK_FUNCS([memset])
 
+dnl Check for path to the Ceph source tree
+CEPH_SRCDIR_PATH=""
+if test x$HADOOP_NATIVE_CEPH_SRCDIR != x""; then
+  CEPH_SRCDIR_PATH="$HADOOP_NATIVE_CEPH_SRCDIR"
+fi
+AC_SUBST([CEPH_SRCDIR_PATH])
+AM_CONDITIONAL(BUILD_CEPH_NATIVE, test x$CEPH_SRCDIR_PATH != x"")
+
 AC_CONFIG_FILES([Makefile
                  src/org/apache/hadoop/io/compress/zlib/Makefile
                  src/org/apache/hadoop/fs/ceph/Makefile
