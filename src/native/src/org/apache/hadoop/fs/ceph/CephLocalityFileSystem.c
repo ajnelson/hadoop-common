@@ -75,6 +75,32 @@ long length        len
 //Ceph includes
 #include "client/ioctl.h"
 
+static int get_file_length(JNIEnv *env, jobject j_file, jlong *len)
+{
+	jclass FileStatusClass;
+	jmethodID getLenID;
+	int ret = 0;
+
+	FileStatusClass = (*env)->GetObjectClass(env, j_file);
+	if (!FileStatusClass) {
+		THROW(env, "java/io/IOException", "FileStatus class not found");
+		ret = -1;
+		goto out;
+	}
+
+	getLenID = (*env)->GetMethodID(env, FileStatusClass, "getLen", "()J");
+	if (!getLenID) {
+		THROW(env, "java/io/IOException", "Could not find getLen()");
+		ret = -1;
+		goto out;
+	}
+
+	*len = (*env)->CallLongMethod(env, j_file, getLenID);
+
+out:
+	return ret;
+}
+
 /**
  * Arguments:  (FileStatus file, long start, long len)
   Exemplar code:  Java_org_apache_hadoop_fs_ceph_CephTalker_ceph_1getdir
@@ -120,9 +146,8 @@ JNIEXPORT jobjectArray JNICALL Java_org_apache_hadoop_fs_ceph_CephLocalityFileSy
 
   //Java...
   jmethodID constrid;              //This can probably be cached ( http://www.ibm.com/developerworks/java/library/j-jni/ )
-  jmethodID filelenid;
   jmethodID methodid_getPathStringFromFileStatus;
-  jclass BlockLocationClass, StringClass, FileStatusClass, CephLocalityFileSystemClass;
+  jclass BlockLocationClass, StringClass, CephLocalityFileSystemClass;
   jobjectArray aryBlockLocations;  //Returning item
   jstring j_path;
   jlong fileLength;
@@ -167,11 +192,6 @@ JNIEXPORT jobjectArray JNICALL Java_org_apache_hadoop_fs_ceph_CephLocalityFileSy
     (*env)->ThrowNew(env, IOExceptionClass, "Hadoop BlockLocation class not found.");
     return NULL;
   }
-  FileStatusClass = (*env)->GetObjectClass(env, j_file);
-  if (FileStatusClass == NULL) {
-    (*env)->ThrowNew(env, IOExceptionClass, "Hadoop FileStatus class not found.");
-    return NULL;
-  }
   CephLocalityFileSystemClass = (*env)->GetObjectClass(env, obj);
   if (CephLocalityFileSystemClass == NULL) {
     (*env)->ThrowNew(env, IOExceptionClass, "Hadoop CephLocalityFileSystemClass class not found.");
@@ -185,11 +205,7 @@ JNIEXPORT jobjectArray JNICALL Java_org_apache_hadoop_fs_ceph_CephLocalityFileSy
   //(Type syntax reference: http://java.sun.com/javase/6/docs/technotes/guides/jni/spec/types.html#wp16432 )
 
   //Grab the file length method
-  filelenid = (*env)->GetMethodID(env, FileStatusClass, "getLen", "()J");
-  if (filelenid == NULL) {
-    (*env)->ThrowNew(env, IOExceptionClass, "Could not get filelenid.");
-    return NULL;
-  }
+
   //debug//debugstream << "filelenid retrieval complete." << endl;
 
   //Grab the BlockLocation constructor
@@ -211,7 +227,10 @@ JNIEXPORT jobjectArray JNICALL Java_org_apache_hadoop_fs_ceph_CephLocalityFileSy
 
   ////Calling methods
   //Grab the file length
-  fileLength = (*env)->CallLongMethod(env, j_file, filelenid);
+  
+	if (get_file_length(env, j_file, &fileLength))
+		return NULL;
+
   //debug//debugstream << "Called fileLen()." << endl;
   //One last sanity check
   if (fileLength < j_start) {
