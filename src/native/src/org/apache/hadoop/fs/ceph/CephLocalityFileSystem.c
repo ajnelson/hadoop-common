@@ -38,6 +38,7 @@
  *   - add memory cleanup for partial completeness?
  *   - use ClassNotFound error where appropriate
  *   - check throws() for all JNI functions
+ *   - check for exception handling backward compat
  */
 
 static int get_file_length(JNIEnv *env, jobject j_file, jlong *len)
@@ -46,18 +47,14 @@ static int get_file_length(JNIEnv *env, jobject j_file, jlong *len)
 	jmethodID getLenID;
 
 	FileStatusClass = (*env)->GetObjectClass(env, j_file);
-	if (!FileStatusClass) {
-		THROW(env, "java/io/IOException", "FileStatus class not found");
-		return -1;
-	}
 
 	getLenID = (*env)->GetMethodID(env, FileStatusClass, "getLen", "()J");
-	if (!getLenID) {
-		THROW(env, "java/io/IOException", "Could not find getLen()");
+	if (!getLenID)
 		return -1;
-	}
 
 	*len = (*env)->CallLongMethod(env, j_file, getLenID);
+	if ((*env)->ExceptionCheck(env))
+		return -1;
 
 	return 0;
 }
@@ -166,16 +163,12 @@ Java_org_apache_hadoop_fs_ceph_CephLocalityFileSystem_getFileBlockLocations
 	}
 
 	StringClass = (*env)->FindClass(env, "java/lang/String");
-	if (!StringClass) {
-		THROW(env, "java/lang/ClassNotFoundException", "java/lang/String not found");
+	if (!StringClass)
 		return NULL;
-	}
 
 	BlockLocationClass = (*env)->FindClass(env, "org/apache/hadoop/fs/BlockLocation");
-	if (!BlockLocationClass) {
-		THROW(env, "java/lang/ClassNotFoundException", "org/apache/hadoop/fs/BlockLocation");
+	if (!BlockLocationClass)
 		return NULL;
-	}
 
 	constrid = (*env)->GetMethodID(env, BlockLocationClass, "<init>", "([Ljava/lang/String;[Ljava/lang/String;JJ)V");
 	if (!constrid)
