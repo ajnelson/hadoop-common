@@ -149,21 +149,13 @@ JNIEXPORT jobjectArray JNICALL Java_org_apache_hadoop_fs_ceph_CephLocalityFileSy
     return NULL;
   }
 
+	if (!j_file)
+		return NULL;
 
-  ////Sanity-check arguments (one more check comes after class declarations)
-  if (j_file == NULL) {
-    return NULL;
-  }
-
-
-  if (j_start < 0) {
-    (*env)->ThrowNew(env, IllegalArgumentExceptionClass, "Invalid start parameter (negative).");
-    return NULL;
-  }
-  if (j_len <= 0) {
-    (*env)->ThrowNew(env, IllegalArgumentExceptionClass, "Invalid len parameter (nonpositive).");
-    return NULL;
-  }
+	if ((j_start < 0) || (j_len < 0)) {
+		THROW(env, "java/lang/IllegalArgumentException", "Invalid start or len parameter");
+		return NULL;
+	}
 
 
   ////Grab the reference to the Java classes needed to set up end structure
