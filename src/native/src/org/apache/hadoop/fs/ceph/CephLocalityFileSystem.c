@@ -124,14 +124,6 @@ Java_org_apache_hadoop_fs_ceph_CephLocalityFileSystem_getFileBlockLocations
 	jobjectArray blocks;
 	jlong fileLength;
 
-	if (!j_file)
-		return NULL;
-
-	if ((j_start < 0) || (j_len < 0)) {
-		THROW(env, "java/lang/IllegalArgumentException", "Invalid start or len parameter");
-		return NULL;
-	}
-
 	StringClass = (*env)->FindClass(env, "java/lang/String");
 	if (!StringClass)
 		return NULL;
@@ -143,6 +135,14 @@ Java_org_apache_hadoop_fs_ceph_CephLocalityFileSystem_getFileBlockLocations
 	constrid = (*env)->GetMethodID(env, BlockLocationClass, "<init>", "([Ljava/lang/String;[Ljava/lang/String;JJ)V");
 	if (!constrid)
 	  return NULL;
+
+	if (!j_file)
+		return NULL;
+
+	if ((j_start < 0) || (j_len < 0)) {
+		THROW(env, "java/lang/IllegalArgumentException", "Invalid start or len parameter");
+		return NULL;
+	}
 
 	if (get_file_length(env, j_file, &fileLength))
 		return NULL;
