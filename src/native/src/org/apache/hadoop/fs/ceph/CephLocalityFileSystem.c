@@ -107,36 +107,6 @@ static int get_file_offset_location(JNIEnv *env, int fd, long offset,
 	return 0;
 }
 
-/**
- * Arguments:  (FileStatus file, long start, long len)
-  Exemplar code:  Java_org_apache_hadoop_fs_ceph_CephTalker_ceph_1getdir
-  Original Java function body:
-
-  public BlockLocation[] getFileBlockLocations(FileStatus file,
-      long start, long len) throws IOException {
-    if (file == null) {
-      return null;
-    }
-
-    if ( (start<0) || (len < 0) ) {
-      throw new IllegalArgumentException("Invalid start or len parameter");
-    }
-
-    if (file.getLen() < start) {
-      return new BlockLocation[0];
-
-    }
-    String[] name = { "localhost:50010" };
-    String[] host = { "localhost" };
-    return new BlockLocation[] { new BlockLocation(name, host, 0, file.getLen()) };
-  }
-
-   Reference for building new objects:
-   http://java.sun.com/docs/books/jni/html/fldmeth.html#26254
-
-   TODO Clean up memory.  Some reading is here:
-   http://java.sun.com/developer/onlineTraining/Programming/JDCBook/jniref.html
- */
 JNIEXPORT jobjectArray JNICALL
 Java_org_apache_hadoop_fs_ceph_CephLocalityFileSystem_getFileBlockLocations
 	(JNIEnv *env, jobject obj, jobject j_file, jstring j_path,
