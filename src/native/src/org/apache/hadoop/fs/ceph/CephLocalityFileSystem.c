@@ -58,15 +58,19 @@ static int get_file_length(JNIEnv *env, jobject j_file, jlong *len)
 	return 0;
 }
 
-static int get_file_layout(JNIEnv *env, int fd, struct ceph_ioctl_layout *layout)
+static int get_file_layout(JNIEnv *env, int fd,
+		struct ceph_ioctl_layout *layout)
 {
-	int err;
+	struct ceph_ioctl_layout tmp_layout;
+	int ret;
 
-	err = ioctl(fd, CEPH_IOC_GET_LAYOUT, layout);
-	if (err < 0) {
+	ret = ioctl(fd, CEPH_IOC_GET_LAYOUT, &tmp_layout);
+	if (ret < 0) {
 		THROW(env, "java/io/IOException", strerror(errno));
-		return err;
+		return ret;
 	}
+
+	*layout = tmp_layout;
 
 	return 0;
 }
