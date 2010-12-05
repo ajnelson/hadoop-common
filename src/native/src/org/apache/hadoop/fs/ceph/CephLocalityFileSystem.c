@@ -43,6 +43,13 @@
  *   - figure out a good way to handle ports
  */
 
+#define EXCEPTION_PATH		"java/lang/Exception"
+#define IOEXCEPTION_PATH	"java/io/IOException"
+#define ARGEXCEPTION_PATH	"java/lang/IllegalArgumentException"
+
+#define STRING_PATH			"java/lang/String"
+#define BLOCKLOCATION_PATH	"org/apache/hadoop/fs/BlockLocation"
+
 static int get_file_length(JNIEnv *env, jobject j_file, jlong *len)
 {
 	jclass FileStatusClass;
@@ -69,7 +76,7 @@ static int get_file_layout(JNIEnv *env, int fd,
 
 	ret = ioctl(fd, CEPH_IOC_GET_LAYOUT, &tmp_layout);
 	if (ret < 0) {
-		THROW(env, "java/io/IOException", strerror(errno));
+		THROW(env, IOEXCEPTION_PATH, strerror(errno));
 		return ret;
 	}
 
@@ -84,7 +91,7 @@ static int open_ceph_file(JNIEnv *env, const char *path)
 
 	fd = open(path, O_RDONLY);
 	if (fd < 0)
-		THROW(env, "java/io/IOException", strerror(errno));
+		THROW(env, IOEXCEPTION_PATH, strerror(errno));
 	
 	return fd;
 }
@@ -100,7 +107,7 @@ static int get_file_offset_location(JNIEnv *env, int fd, long offset,
 
 	ret = ioctl(fd, CEPH_IOC_GET_DATALOC, &tmp_dataloc);
 	if (ret < 0) {
-		THROW(env, "java/io/IOException", strerror(errno));
+		THROW(env, IOEXCEPTION_PATH, strerror(errno));
 		return ret;
 	}
 
@@ -131,15 +138,17 @@ Java_org_apache_hadoop_fs_ceph_CephLocalityFileSystem_getFileBlockLocations
 	jstring host, name;
 	jlong fileLength;
 
-	StringClass = (*env)->FindClass(env, "java/lang/String");
+	StringClass = (*env)->FindClass(env, STRING_PATH);
 	if (!StringClass)
 		return NULL;
 
-	BlockLocationClass = (*env)->FindClass(env, "org/apache/hadoop/fs/BlockLocation");
+	BlockLocationClass = (*env)->FindClass(env, BLOCKLOCATION_PATH);
 	if (!BlockLocationClass)
 		return NULL;
 
-	constrid = (*env)->GetMethodID(env, BlockLocationClass, "<init>", "([Ljava/lang/String;[Ljava/lang/String;JJ)V");
+	constrid = (*env)->GetMethodID(env, BlockLocationClass, "<init>",
+			"([Ljava/lang/String;[Ljava/lang/String;JJ)V");
+
 	if (!constrid)
 	  return NULL;
 
@@ -152,7 +161,7 @@ Java_org_apache_hadoop_fs_ceph_CephLocalityFileSystem_getFileBlockLocations
 	 *   - Do any FileSystem users have len == 0 edge cases?
 	 */
 	if ((j_start < 0) || (j_len <= 0)) {
-		THROW(env, "java/lang/IllegalArgumentException", "Invalid start or len parameter");
+		THROW(env, ARGEXCEPTION_PATH, "Invalid start or len parameter");
 		return NULL;
 	}
 
@@ -168,7 +177,7 @@ Java_org_apache_hadoop_fs_ceph_CephLocalityFileSystem_getFileBlockLocations
 	
 	c_path = (*env)->GetStringUTFChars(env, j_path, NULL);
 	if (!c_path) {
-		THROW(env, "java/lang/Exception", "GetStringUTFChars Failed");
+		THROW(env, EXCEPTION_PATH, "GetStringUTFChars Failed");
 		return NULL;
 	}
 
@@ -217,7 +226,7 @@ Java_org_apache_hadoop_fs_ceph_CephLocalityFileSystem_getFileBlockLocations
 		if (getnameinfo((struct sockaddr *)&dl.osd_addr, sizeof(dl.osd_addr),
 					hostbuf, sizeof(hostbuf), NULL, 0, NI_NUMERICHOST)) {
 
-			THROW(env, "java/io/IOException", strerror(errno));
+			THROW(env, IOEXCEPTION_PATH, strerror(errno));
 			return NULL;
 		}
 
@@ -256,7 +265,7 @@ Java_org_apache_hadoop_fs_ceph_CephLocalityFileSystem_getFileBlockLocations
 	}
 
 	if (close(fd) < 0) {
-		THROW(env, "java/io/IOException", strerror(errno));
+		THROW(env, IOEXCEPTION_PATH, strerror(errno));
 		return NULL;
 	}
 	
