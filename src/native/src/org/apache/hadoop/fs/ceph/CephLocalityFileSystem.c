@@ -158,7 +158,6 @@ JNIEXPORT jobjectArray JNICALL Java_org_apache_hadoop_fs_ceph_CephLocalityFileSy
   jmethodID methodid_getPathStringFromFileStatus;
   jclass BlockLocationClass, StringClass, CephLocalityFileSystemClass;
   jobjectArray aryBlockLocations;  //Returning item
-  jobjectArray blocks;
   jstring j_path;
   jlong fileLength;
   jclass IOExceptionClass, OutOfMemoryErrorClass;
@@ -231,16 +230,11 @@ JNIEXPORT jobjectArray JNICALL Java_org_apache_hadoop_fs_ceph_CephLocalityFileSy
     return NULL;
   }
 
-
-	blocks = (*env)->NewObjectArray(env, 0, BlockLocationClass, NULL);
-	if (!blocks)
-		return;
-
 	if (get_file_length(env, j_file, &fileLength))
 		return NULL;
 
 	if (fileLength < j_start)
-		return blocks;
+		return (*env)->NewObjectArray(env, 0, BlockLocationClass, NULL);
 
   //Grab the file name
   j_path = (jstring) (*env)->CallObjectMethod(env, obj, methodid_getPathStringFromFileStatus, j_file);
