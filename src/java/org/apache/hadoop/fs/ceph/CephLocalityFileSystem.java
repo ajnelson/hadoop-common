@@ -116,7 +116,12 @@ public class CephLocalityFileSystem extends RawLocalFileSystem {
    * destroy it.
    */
   @Override
-  public native BlockLocation[] getFileBlockLocations(FileStatus file, long start, long len) throws IOException;
+  public BlockLocation[] getFileBlockLocations(FileStatus file, long start, long len) throws IOException {
+	  String path = getPathStringFromFileStatus(file);
+	  return getFileBlockLocations(file, path, start, len);
+  }
+  
+  private native BlockLocation[] getFileBlockLocations(FileStatus file, String path, long start, long len) throws IOException;
 
   /**
    * Convenience method for JNI, to save a few crossings between the

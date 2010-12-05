@@ -141,7 +141,7 @@ static int get_file_offset_location(JNIEnv *env, int fd, long offset,
    http://java.sun.com/developer/onlineTraining/Programming/JDCBook/jniref.html
  */
 JNIEXPORT jobjectArray JNICALL Java_org_apache_hadoop_fs_ceph_CephLocalityFileSystem_getFileBlockLocations
-  (JNIEnv *env, jobject obj, jobject j_file, jlong j_start, jlong j_len) {
+  (JNIEnv *env, jobject obj, jobject j_file, jstring j_path, jlong j_start, jlong j_len) {
 
   ////Variables
   //Native...
@@ -154,10 +154,8 @@ JNIEXPORT jobjectArray JNICALL Java_org_apache_hadoop_fs_ceph_CephLocalityFileSy
 
   //Java...
   jmethodID constrid;              //This can probably be cached ( http://www.ibm.com/developerworks/java/library/j-jni/ )
-  jmethodID methodid_getPathStringFromFileStatus;
   jclass BlockLocationClass, StringClass, CephLocalityFileSystemClass;
   jobjectArray aryBlockLocations;  //Returning item
-  jstring j_path;
   jlong fileLength;
   jclass IOExceptionClass, OutOfMemoryErrorClass;
 
@@ -214,41 +212,23 @@ JNIEXPORT jobjectArray JNICALL Java_org_apache_hadoop_fs_ceph_CephLocalityFileSy
   }
   //debug//debugstream << "constrid retrieval complete." << endl;
 
-  //Grab the helper method for quick path conversion
-  methodid_getPathStringFromFileStatus = (*env)->GetMethodID(env, CephLocalityFileSystemClass, "getPathStringFromFileStatus", "(Lorg/apache/hadoop/fs/FileStatus;)Ljava/lang/String;");
-  if (methodid_getPathStringFromFileStatus == NULL) {
-    (*env)->ThrowNew(env, IOExceptionClass, "ERROR:  Could not get methodid_getPathStringFromFileStatus.");
-    return NULL;
-  }
-
 	if (get_file_length(env, j_file, &fileLength))
 		return NULL;
 
 	if (fileLength < j_start)
 		return (*env)->NewObjectArray(env, 0, BlockLocationClass, NULL);
+	
+	c_path = (*env)->GetStringUTFChars(env, j_path, NULL);
+	if (!c_path) {
+		THROW(env, "java/lang/Exception", "GetStringUTFChars Failed");
+		return NULL;
+	}
 
-  //Grab the file name
-  j_path = (jstring) (*env)->CallObjectMethod(env, obj, methodid_getPathStringFromFileStatus, j_file);
-  if (j_path == NULL) {
-    (*env)->ThrowNew(env, IOExceptionClass, "j_path retrieval failed.");
-    return NULL;
-  }
-  //debug//debugstream << "j_path retrieval complete." << endl;
-
-  c_path = (*env)->GetStringUTFChars(env, j_path, NULL);
-  if (c_path == NULL) {
-    (*env)->ThrowNew(env, IOExceptionClass, "c_path is NULL.");
-    return NULL;
-  }
-  //debug//debugstream << "c_path path is " << c_path << endl;
-
-  fd = open_ceph_file(env, c_path);
-  if (fd < 0)
-	  return NULL;
-
-  //debug//debugstream << "File opening complete." << endl;
-  //Cleanup:  Don't need file name characters anymore.
-  (*env)->ReleaseStringUTFChars(env, j_path, c_path);
+	fd = open_ceph_file(env, c_path);
+	if (fd < 0)
+		return NULL;
+	
+	(*env)->ReleaseStringUTFChars(env, j_path, c_path);
 
 	if (get_file_layout(env, fd, &ceph_layout))
 		return NULL;
