@@ -67,6 +67,8 @@ long length        len
 //#include <fstream>   //Debugging
 //using namespace std; //Debugging
 
+#include "org_apache_hadoop.h"
+
 //JNI include
 #include "org_apache_hadoop_fs_ceph_CephLocalityFileSystem.h"
 
