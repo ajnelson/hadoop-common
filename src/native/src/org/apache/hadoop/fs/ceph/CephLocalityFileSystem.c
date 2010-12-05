@@ -82,6 +82,26 @@ static int open_ceph_file(JNIEnv *env, const char *path)
 	return fd;
 }
 
+static int get_file_offset_location(JNIEnv *env, int fd, long offset,
+		struct ceph_ioctl_dataloc *dataloc)
+{
+	struct ceph_ioctl_dataloc tmp_dataloc;
+	int ret;
+
+	memset(&tmp_dataloc, 0, sizeof(tmp_dataloc));
+	tmp_dataloc.file_offset = offset;
+
+	ret = ioctl(fd, CEPH_IOC_GET_DATALOC, &tmp_dataloc);
+	if (ret < 0) {
+		THROW(env, "java/io/IOException", strerror(errno));
+		return ret;
+	}
+
+	*dataloc = tmp_dataloc;
+
+	return 0;
+}
+
 /**
  * Arguments:  (FileStatus file, long start, long len)
   Exemplar code:  Java_org_apache_hadoop_fs_ceph_CephTalker_ceph_1getdir
@@ -275,16 +295,10 @@ JNIEXPORT jobjectArray JNICALL Java_org_apache_hadoop_fs_ceph_CephLocalityFileSy
     //Note <=; we go through the last requested byte.
     //Set up the data location object
     curoffset = i*blocksize;
-    dl.file_offset = curoffset;
     //debug//debugstream << "Running dataloc ioctl loop for dl.file_offset=" << dl.file_offset << " (curoffset=" << curoffset << ")" << endl;
 
-    //Run the ioctl to get block location()
-    err = ioctl(fd, CEPH_IOC_GET_DATALOC, (unsigned long)&dl);
-    if (err) {
-      sprintf(errdesc, "ioctl failed (dataloc); err=%d.", err);
-      (*env)->ThrowNew(env, IOExceptionClass, errdesc);
-      return NULL;
-    }
+	if (get_file_offset_location(env, fd, curoffset, &dl))
+		return NULL;
 
     //Create string object.
     //TODO:  Check if freeing this causes a null pointer exception in Java.
