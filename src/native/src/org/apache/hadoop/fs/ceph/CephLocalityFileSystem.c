@@ -79,26 +79,22 @@ static int get_file_length(JNIEnv *env, jobject j_file, jlong *len)
 {
 	jclass FileStatusClass;
 	jmethodID getLenID;
-	int ret = 0;
 
 	FileStatusClass = (*env)->GetObjectClass(env, j_file);
 	if (!FileStatusClass) {
 		THROW(env, "java/io/IOException", "FileStatus class not found");
-		ret = -1;
-		goto out;
+		return -1;
 	}
 
 	getLenID = (*env)->GetMethodID(env, FileStatusClass, "getLen", "()J");
 	if (!getLenID) {
 		THROW(env, "java/io/IOException", "Could not find getLen()");
-		ret = -1;
-		goto out;
+		return -1;
 	}
 
 	*len = (*env)->CallLongMethod(env, j_file, getLenID);
 
-out:
-	return ret;
+	return 0;
 }
 
 static int get_file_layout(JNIEnv *env, int fd, struct ceph_ioctl_layout *layout)
