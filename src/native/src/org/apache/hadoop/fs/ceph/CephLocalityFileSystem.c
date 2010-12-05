@@ -39,6 +39,8 @@
  *   - use ClassNotFound error where appropriate
  *   - check throws() for all JNI functions
  *   - check for exception handling backward compat
+ *   - handle bad layout data gracefully
+ *   - figure out a good way to handle ports
  */
 
 static int get_file_length(JNIEnv *env, jobject j_file, jlong *len)
