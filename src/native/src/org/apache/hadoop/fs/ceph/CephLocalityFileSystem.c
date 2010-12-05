@@ -132,7 +132,7 @@ Java_org_apache_hadoop_fs_ceph_CephLocalityFileSystem_getFileBlockLocations
 
 	jclass StringClass;
 	jclass BlockLocationClass;
-	jmethodID constrid;
+	jmethodID BlockLocationConstr;
 	jobject block;
 	jobjectArray hosts, names, blocks;
 	jstring host, name;
@@ -146,10 +146,9 @@ Java_org_apache_hadoop_fs_ceph_CephLocalityFileSystem_getFileBlockLocations
 	if (!BlockLocationClass)
 		return NULL;
 
-	constrid = (*env)->GetMethodID(env, BlockLocationClass, "<init>",
+	BlockLocationConstr = (*env)->GetMethodID(env, BlockLocationClass, "<init>",
 			"([Ljava/lang/String;[Ljava/lang/String;JJ)V");
-
-	if (!constrid)
+	if (!BlockLocationConstr)
 	  return NULL;
 
 	if (!j_file)
@@ -255,7 +254,8 @@ Java_org_apache_hadoop_fs_ceph_CephLocalityFileSystem_getFileBlockLocations
 		if ((*env)->ExceptionCheck(env))
 			return NULL;
 
-		block = (*env)->NewObject(env, BlockLocationClass, constrid, names, hosts, block_start, block_end - block_start);
+		block = (*env)->NewObject(env, BlockLocationClass, BlockLocationConstr,
+				names, hosts, block_start, block_end - block_start);
 		if (!block)
 			return NULL;
 
