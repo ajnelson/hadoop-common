@@ -34,6 +34,10 @@
  * TODO:
  *   - strerror is not thread safe
  *   - add conditional debug statements
+ *   - verify proper nested exception propagation
+ *   - add memory cleanup for partial completeness?
+ *   - use ClassNotFound error where appropriate
+ *   - check throws() for all JNI functions
  */
 
 static int get_file_length(JNIEnv *env, jobject j_file, jlong *len)
