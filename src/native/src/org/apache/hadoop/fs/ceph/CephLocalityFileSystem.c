@@ -140,24 +140,23 @@ static int get_file_offset_location(JNIEnv *env, int fd, long offset,
    TODO Clean up memory.  Some reading is here:
    http://java.sun.com/developer/onlineTraining/Programming/JDCBook/jniref.html
  */
-JNIEXPORT jobjectArray JNICALL Java_org_apache_hadoop_fs_ceph_CephLocalityFileSystem_getFileBlockLocations
-  (JNIEnv *env, jobject obj, jobject j_file, jstring j_path, jlong j_start, jlong j_len) {
+JNIEXPORT jobjectArray JNICALL
+Java_org_apache_hadoop_fs_ceph_CephLocalityFileSystem_getFileBlockLocations
+	(JNIEnv *env, jobject obj, jobject j_file, jstring j_path,
+	 jlong j_start, jlong j_len)
+{
+	int fd;
+	const char *c_path;
+	long blocksize, numblocks;
+	struct ceph_ioctl_layout ceph_layout;
+	struct ceph_ioctl_dataloc dl;
 
-  ////Variables
-  //Native...
-  //debug//const char *logpath = "/home/alex/TestGetFileBlockLocations.txt";
-  const char *c_path = "";
-  int fd;
-  long blocksize, numblocks;
-  struct ceph_ioctl_layout ceph_layout;
-  struct ceph_ioctl_dataloc dl;
-
-  //Java...
-  jmethodID constrid;              //This can probably be cached ( http://www.ibm.com/developerworks/java/library/j-jni/ )
-  jclass BlockLocationClass, StringClass;
-  jobjectArray aryBlockLocations;  //Returning item
-  jlong fileLength;
-  jclass IOExceptionClass, OutOfMemoryErrorClass;
+	jclass StringClass;
+	jclass BlockLocationClass;
+	jmethodID constrid;
+	jobjectArray blocks;
+	jlong fileLength;
+	jclass IOExceptionClass, OutOfMemoryErrorClass;
 
 
   ////Grab the exception classes for all the little things that can go wrong.
@@ -224,8 +223,8 @@ JNIEXPORT jobjectArray JNICALL Java_org_apache_hadoop_fs_ceph_CephLocalityFileSy
   numblocks = (j_start+j_len-1)/blocksize - j_start/blocksize + 1;
   //debug//debugstream << "Expecting to work on " << numblocks << " blocks." << endl;
 
-  aryBlockLocations = (jobjectArray) (*env)->NewObjectArray(env, numblocks, BlockLocationClass, NULL);
-  if (aryBlockLocations == NULL) {
+  blocks = (jobjectArray) (*env)->NewObjectArray(env, numblocks, BlockLocationClass, NULL);
+  if (blocks == NULL) {
     (*env)->ThrowNew(env, OutOfMemoryErrorClass, "Unable to allocate BlockLocation array.");
     return NULL;
   }
@@ -290,7 +289,7 @@ JNIEXPORT jobjectArray JNICALL Java_org_apache_hadoop_fs_ceph_CephLocalityFileSy
     blocklength = (imax-curoffset)<blocksize ? imax-curoffset : blocksize;  //TODO verify boundary condition on < vs. <=
     //debug//debugstream << "Block length:  " << blocklength << endl;
     jobject tmpBlockLocation = (*env)->NewObject(env, BlockLocationClass, constrid, aryNames, aryHosts, curoffset, blocklength);
-    (*env)->SetObjectArrayElement(env, aryBlockLocations, i-loopinit, tmpBlockLocation);
+    (*env)->SetObjectArrayElement(env, blocks, i-loopinit, tmpBlockLocation);
     //TODO Hunt for ArrayIndex exceptions
   }
   //Reminder:  i will be 1 too large after the loop finishes.  No need to add another 1.
@@ -301,5 +300,5 @@ JNIEXPORT jobjectArray JNICALL Java_org_apache_hadoop_fs_ceph_CephLocalityFileSy
   close(fd);
   //debug//debugstream.close();
 
-  return aryBlockLocations;
+  return blocks; 
 }
