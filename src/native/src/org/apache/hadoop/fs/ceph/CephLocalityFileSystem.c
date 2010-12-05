@@ -147,11 +147,10 @@ JNIEXPORT jobjectArray JNICALL Java_org_apache_hadoop_fs_ceph_CephLocalityFileSy
   //Native...
   //debug//const char *logpath = "/home/alex/TestGetFileBlockLocations.txt";
   const char *c_path = "";
-  int fd, err;
+  int fd;
   long blocksize, numblocks;
   struct ceph_ioctl_layout ceph_layout;
   struct ceph_ioctl_dataloc dl;
-  char errdesc[256];
 
   //Java...
   jmethodID constrid;              //This can probably be cached ( http://www.ibm.com/developerworks/java/library/j-jni/ )
@@ -161,14 +160,6 @@ JNIEXPORT jobjectArray JNICALL Java_org_apache_hadoop_fs_ceph_CephLocalityFileSy
   jstring j_path;
   jlong fileLength;
   jclass IOExceptionClass, OutOfMemoryErrorClass;
-
-
-  ////Debugging
-  //Setup
-  //debug//ofstream debugstream(logpath, ios_base::app);
-  //debug//debugstream << "Starting.  Current time:  " << asctime(timeinfo) << "." << endl;
-  //debug//debugstream << "Arguments:  <j_file>, " << j_start << ", " << j_len << endl;
-  memset(errdesc, 0, 256);
 
 
   ////Grab the exception classes for all the little things that can go wrong.
