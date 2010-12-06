@@ -232,17 +232,30 @@ Java_org_apache_hadoop_fs_ceph_CephLocalityFileSystem_getFileBlockLocations
 			return NULL;
 		}
 
+		/*
+		 * Setup host
+		 */
+
 		host = (*env)->NewStringUTF(env, hostbuf);
 		if (!host)
 			return NULL;
 
-		name = (*env)->NewStringUTF(env, ""); /* Java can re-assigns with port info */
-		if (!name)
-			return NULL;
-
-
 		hosts = (*env)->NewObjectArray(env, 1, StringClass, NULL);
 		if (!hosts)
+			return NULL;
+
+		(*env)->SetObjectArrayElement(env, hosts, 0, host);
+		if ((*env)->ExceptionCheck(env))
+			return NULL;
+
+		(*env)->DeleteLocalRef(env, host);
+
+		/*
+		 * Setup name
+		 */
+
+		name = (*env)->NewStringUTF(env, ""); /* Java can re-assigns with port info */
+		if (!name)
 			return NULL;
 
 		names = (*env)->NewObjectArray(env, 1, StringClass, NULL);
@@ -253,18 +266,22 @@ Java_org_apache_hadoop_fs_ceph_CephLocalityFileSystem_getFileBlockLocations
 		if ((*env)->ExceptionCheck(env))
 			return NULL;
 
-		(*env)->SetObjectArrayElement(env, hosts, 0, host);
-		if ((*env)->ExceptionCheck(env))
-			return NULL;
+		(*env)->DeleteLocalRef(env, name);
+
 
 		block = (*env)->NewObject(env, BlockLocationClass, BlockLocationConstr,
 				names, hosts, block_start, block_end - block_start);
 		if (!block)
 			return NULL;
 
+		(*env)->DeleteLocalRef(env, hosts);
+		(*env)->DeleteLocalRef(env, names);
+
 		(*env)->SetObjectArrayElement(env, blocks, i, block);
 		if ((*env)->ExceptionCheck(env))
 			return NULL;
+
+		(*env)->DeleteLocalRef(env, block);
 	}
 
 	if (close(fd) < 0) {
