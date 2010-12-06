@@ -53,8 +53,14 @@ public class CephLocalityFileSystem extends RawLocalFileSystem {
    * consult the Ceph kernel client.
    */
   static {
-    if (!NativeCodeLoader.isNativeCodeLoaded()) {
-      LOG.warn("could not load native code");
+    if (NativeCodeLoader.isNativeCodeLoaded()) {
+      initIDs();
+    } else {
+      /* 
+       * TODO: this should completely bomb out, or gracefully use no locality
+       * info provided by Ceph.
+       */
+      LOG.warn("Could not load native code...");
     }
   }
 
@@ -93,4 +99,6 @@ public class CephLocalityFileSystem extends RawLocalFileSystem {
   public URI getUri() {
     return uri;
   }
+
+  private native static void initIDs(); 
 }

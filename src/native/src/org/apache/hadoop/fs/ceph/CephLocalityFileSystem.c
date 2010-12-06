@@ -51,6 +51,9 @@
 #define STRING_PATH			"java/lang/String"
 #define BLOCKLOCATION_PATH	"org/apache/hadoop/fs/BlockLocation"
 
+static jclass string_cls;
+static jclass blocklocation_cls;
+
 static int get_file_length(JNIEnv *env, jobject j_file, jlong *len)
 {
 	jclass FileStatusClass;
@@ -117,6 +120,40 @@ static int get_file_offset_location(JNIEnv *env, int fd, long offset,
 	return 0;
 }
 
+JNIEXPORT void JNICALL
+Java_org_apache_hadoop_fs_ceph_CephLocalityFileSystem_initIDs
+	(JNIEnv *env, jclass class)
+{
+	jclass cls;
+	
+	/*
+	 * Cache Java String class
+	 */
+	cls = (*env)->FindClass(env, STRING_PATH);
+	if (!cls)
+		goto out;
+
+	string_cls = (*env)->NewGlobalRef(env, cls);
+
+	/*
+	 * Cache Hadoop BlockLocation classs
+	 */
+	cls = (*env)->FindClass(env, BLOCKLOCATION_PATH);
+	if (!cls)
+		goto out;
+
+	blocklocation_cls = (*env)->NewGlobalRef(env, cls);
+
+	return;
+
+out:
+	if (string_cls)
+		(*env)->DeleteGlobalRef(env, string_cls);
+
+	if (blocklocation_cls)
+		(*env)->DeleteGlobalRef(env, blocklocation_cls);
+}
+
 JNIEXPORT jobjectArray JNICALL
 Java_org_apache_hadoop_fs_ceph_CephLocalityFileSystem_getFileBlockLocations
 	(JNIEnv *env, jobject obj, jobject j_file, jstring j_path,
@@ -131,23 +168,13 @@ Java_org_apache_hadoop_fs_ceph_CephLocalityFileSystem_getFileBlockLocations
 	__u64 block_start, block_end, stripe_end;
 	char hostbuf[NI_MAXHOST];
 
-	jclass StringClass;
-	jclass BlockLocationClass;
 	jmethodID BlockLocationConstr;
 	jobject block;
 	jobjectArray hosts, names, blocks;
 	jstring host, name;
 	jlong fileLength;
 
-	StringClass = (*env)->FindClass(env, STRING_PATH);
-	if (!StringClass)
-		return NULL;
-
-	BlockLocationClass = (*env)->FindClass(env, BLOCKLOCATION_PATH);
-	if (!BlockLocationClass)
-		return NULL;
-
-	BlockLocationConstr = (*env)->GetMethodID(env, BlockLocationClass, "<init>",
+	BlockLocationConstr = (*env)->GetMethodID(env, blocklocation_cls, "<init>",
 			"([Ljava/lang/String;[Ljava/lang/String;JJ)V");
 	if (!BlockLocationConstr)
 	  return NULL;
@@ -173,7 +200,7 @@ Java_org_apache_hadoop_fs_ceph_CephLocalityFileSystem_getFileBlockLocations
 		return NULL;
 
 	if (fileLength < j_start)
-		return (*env)->NewObjectArray(env, 0, BlockLocationClass, NULL);
+		return (*env)->NewObjectArray(env, 0, blocklocation_cls, NULL);
 	
 	c_path = (*env)->GetStringUTFChars(env, j_path, NULL);
 	if (!c_path) {
@@ -205,7 +232,7 @@ Java_org_apache_hadoop_fs_ceph_CephLocalityFileSystem_getFileBlockLocations
     if (total_len % stripe_unit)
         num_blocks++;
     
-    blocks = (jobjectArray) (*env)->NewObjectArray(env, num_blocks, BlockLocationClass, NULL);
+    blocks = (jobjectArray) (*env)->NewObjectArray(env, num_blocks, blocklocation_cls, NULL);
     if (!blocks)
         return NULL;
 
@@ -240,7 +267,7 @@ Java_org_apache_hadoop_fs_ceph_CephLocalityFileSystem_getFileBlockLocations
 		if (!host)
 			return NULL;
 
-		hosts = (*env)->NewObjectArray(env, 1, StringClass, NULL);
+		hosts = (*env)->NewObjectArray(env, 1, string_cls, NULL);
 		if (!hosts)
 			return NULL;
 
@@ -258,7 +285,7 @@ Java_org_apache_hadoop_fs_ceph_CephLocalityFileSystem_getFileBlockLocations
 		if (!name)
 			return NULL;
 
-		names = (*env)->NewObjectArray(env, 1, StringClass, NULL);
+		names = (*env)->NewObjectArray(env, 1, string_cls, NULL);
 		if (!names)
 			return NULL;
 
@@ -269,7 +296,7 @@ Java_org_apache_hadoop_fs_ceph_CephLocalityFileSystem_getFileBlockLocations
 		(*env)->DeleteLocalRef(env, name);
 
 
-		block = (*env)->NewObject(env, BlockLocationClass, BlockLocationConstr,
+		block = (*env)->NewObject(env, blocklocation_cls, BlockLocationConstr,
 				names, hosts, block_start, block_end - block_start);
 		if (!block)
 			return NULL;
