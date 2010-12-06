@@ -182,8 +182,10 @@ Java_org_apache_hadoop_fs_ceph_CephLocalityFileSystem_getFileBlockLocations
 	}
 
 	fd = open_ceph_file(env, c_path);
-	if (fd < 0)
+	if (fd < 0) {
+		(*env)->ReleaseStringUTFChars(env, j_path, c_path);
 		return NULL;
+	}
 	
 	(*env)->ReleaseStringUTFChars(env, j_path, c_path);
 
