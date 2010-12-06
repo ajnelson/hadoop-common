@@ -41,6 +41,7 @@
  *   - check for exception handling backward compat
  *   - handle bad layout data gracefully
  *   - figure out a good way to handle ports
+ *   - should cache class and field ids
  */
 
 #define EXCEPTION_PATH		"java/lang/Exception"
