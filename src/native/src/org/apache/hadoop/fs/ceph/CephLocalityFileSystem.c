@@ -34,14 +34,14 @@
  * TODO:
  *   - strerror is not thread safe
  *   - add conditional debug statements
- *   - verify proper nested exception propagation
- *   - add memory cleanup for partial completeness?
- *   - use ClassNotFound error where appropriate
- *   - check throws() for all JNI functions
- *   - check for exception handling backward compat
  *   - handle bad layout data gracefully
  *   - figure out a good way to handle ports
- *   - should cache class and field ids
+ *   - (DONE) verify proper nested exception propagation
+ *   - (DONE) add memory cleanup for partial completeness?
+ *   - (DONE) use ClassNotFound error where appropriate
+ *   - (DONE) check throws() for all JNI functions
+ *   - (DONE) check for exception handling backward compat
+ *   - (DONE) should cache class and field ids
  */
 
 #define EXCEPTION_PATH		"java/lang/Exception"
