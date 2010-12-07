@@ -121,6 +121,70 @@ static int get_file_offset_location(JNIEnv *env, int fd, long offset,
 	return 0;
 }
 
+static jobject build_block(JNIEnv *env, struct ceph_ioctl_dataloc *dl,
+			   __u64 block_start, __u64 len)
+{
+	jobject block;
+	jstring host, name;
+	jobjectArray hosts, names;
+	char hostbuf[NI_MAXHOST];
+
+	memset(hostbuf, 0, sizeof(hostbuf));
+
+	if (getnameinfo((struct sockaddr *)&dl->osd_addr, sizeof(dl->osd_addr),
+				hostbuf, sizeof(hostbuf), NULL, 0, NI_NUMERICHOST)) {
+
+		THROW(env, IOEXCEPTION_PATH, strerror(errno));
+		return NULL;
+	}
+
+	/*
+	 * Setup host
+	 */
+
+	host = (*env)->NewStringUTF(env, hostbuf);
+	if (!host)
+		return NULL;
+
+	hosts = (*env)->NewObjectArray(env, 1, string_cls, NULL);
+	if (!hosts)
+		return NULL;
+
+	(*env)->SetObjectArrayElement(env, hosts, 0, host);
+	if ((*env)->ExceptionCheck(env))
+		return NULL;
+
+	(*env)->DeleteLocalRef(env, host);
+
+	/*
+	 * Setup name
+	 */
+
+	name = (*env)->NewStringUTF(env, ""); /* Java can re-assigns with port info */
+	if (!name)
+		return NULL;
+
+	names = (*env)->NewObjectArray(env, 1, string_cls, NULL);
+	if (!names)
+		return NULL;
+
+	(*env)->SetObjectArrayElement(env, names, 0, name);
+	if ((*env)->ExceptionCheck(env))
+		return NULL;
+
+	(*env)->DeleteLocalRef(env, name);
+
+	block = (*env)->NewObject(env, blocklocation_cls, blocklocation_ctor,
+			names, hosts, block_start, len);
+	if (!block)
+		return NULL;
+
+	(*env)->DeleteLocalRef(env, hosts);
+	(*env)->DeleteLocalRef(env, names);
+
+	return block;
+}
+
 JNIEXPORT void JNICALL
 Java_org_apache_hadoop_fs_ceph_CephLocalityFileSystem_initIDs
 	(JNIEnv *env, jclass class)
@@ -175,11 +239,9 @@ Java_org_apache_hadoop_fs_ceph_CephLocalityFileSystem_getFileBlockLocations
     __u64 offset_start, offset_base, offset_end;
     __u64 len, total_len, stripe_unit, num_blocks, i;
 	__u64 block_start, block_end, stripe_end;
-	char hostbuf[NI_MAXHOST];
 
 	jobject block;
-	jobjectArray hosts, names, blocks;
-	jstring host, name;
+	jobjectArray blocks;
 	jlong fileLength;
 
 	if (!j_file)
@@ -253,59 +315,9 @@ Java_org_apache_hadoop_fs_ceph_CephLocalityFileSystem_getFileBlockLocations
 		if (get_file_offset_location(env, fd, block_start, &dl))
 			return NULL;
 
-		memset(hostbuf, 0, sizeof(hostbuf));
-
-		if (getnameinfo((struct sockaddr *)&dl.osd_addr, sizeof(dl.osd_addr),
-					hostbuf, sizeof(hostbuf), NULL, 0, NI_NUMERICHOST)) {
-
-			THROW(env, IOEXCEPTION_PATH, strerror(errno));
-			return NULL;
-		}
-
-		/*
-		 * Setup host
-		 */
-
-		host = (*env)->NewStringUTF(env, hostbuf);
-		if (!host)
-			return NULL;
-
-		hosts = (*env)->NewObjectArray(env, 1, string_cls, NULL);
-		if (!hosts)
-			return NULL;
-
-		(*env)->SetObjectArrayElement(env, hosts, 0, host);
-		if ((*env)->ExceptionCheck(env))
-			return NULL;
-
-		(*env)->DeleteLocalRef(env, host);
-
-		/*
-		 * Setup name
-		 */
-
-		name = (*env)->NewStringUTF(env, ""); /* Java can re-assigns with port info */
-		if (!name)
-			return NULL;
-
-		names = (*env)->NewObjectArray(env, 1, string_cls, NULL);
-		if (!names)
-			return NULL;
-
-		(*env)->SetObjectArrayElement(env, names, 0, name);
-		if ((*env)->ExceptionCheck(env))
-			return NULL;
-
-		(*env)->DeleteLocalRef(env, name);
-
-
-		block = (*env)->NewObject(env, blocklocation_cls, blocklocation_ctor,
-				names, hosts, block_start, block_end - block_start);
+		block = build_block(env, &dl, block_start, block_end-block_start);
 		if (!block)
 			return NULL;
-
-		(*env)->DeleteLocalRef(env, hosts);
-		(*env)->DeleteLocalRef(env, names);
 
 		(*env)->SetObjectArrayElement(env, blocks, i, block);
 		if ((*env)->ExceptionCheck(env))
