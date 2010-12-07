@@ -55,24 +55,6 @@ static jclass string_cls;
 static jclass blocklocation_cls;
 static jmethodID blocklocation_ctor;
 
-static int get_file_length(JNIEnv *env, jobject j_file, jlong *len)
-{
-	jclass FileStatusClass;
-	jmethodID getLenID;
-
-	FileStatusClass = (*env)->GetObjectClass(env, j_file);
-
-	getLenID = (*env)->GetMethodID(env, FileStatusClass, "getLen", "()J");
-	if (!getLenID)
-		return -1;
-
-	*len = (*env)->CallLongMethod(env, j_file, getLenID);
-	if ((*env)->ExceptionCheck(env))
-		return -1;
-
-	return 0;
-}
-
 static int get_file_layout(JNIEnv *env, int fd,
 		struct ceph_ioctl_layout *layout)
 {
@@ -230,7 +212,7 @@ out:
 JNIEXPORT jobjectArray JNICALL
 Java_org_apache_hadoop_fs_ceph_CephLocalityFileSystem_getFileBlockLocations
 	(JNIEnv *env, jobject obj, jobject j_file, jstring j_path,
-	 jlong j_start, jlong j_len)
+	 jlong j_start, jlong j_len, jlong j_filelength)
 {
 	int fd;
 	const char *c_path;
@@ -260,9 +242,7 @@ Java_org_apache_hadoop_fs_ceph_CephLocalityFileSystem_getFileBlockLocations
     /* Upgrade to 64-bits */
     len = j_len;
     offset_start = j_start;
-
-	if (get_file_length(env, j_file, &fileLength))
-		return NULL;
+    fileLength = j_filelength;
 
 	if (fileLength < j_start)
 		return (*env)->NewObjectArray(env, 0, blocklocation_cls, NULL);

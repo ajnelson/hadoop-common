@@ -82,12 +82,15 @@ public class CephLocalityFileSystem extends RawLocalFileSystem {
     /* JNI needs the full path */
     String path = file.getPath().toUri().getRawPath();
 
+    /* JNI needs the file length */
+    long filelength = file.getLen();
+
     /* Look up block location in JNI provided method */
-    return this.getFileBlockLocations(file, path, start, len);
+    return this.getFileBlockLocations(file, path, start, len, filelength);
   }
   
   private native BlockLocation[] getFileBlockLocations(FileStatus file,
-      String path, long start, long len) throws IOException;
+      String path, long start, long len, long filelength) throws IOException;
 
   @Override
   public void initialize(URI uri, Configuration conf) throws IOException {
