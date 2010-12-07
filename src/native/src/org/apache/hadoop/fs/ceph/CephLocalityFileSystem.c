@@ -55,6 +55,9 @@ static jclass string_cls;
 static jclass blocklocation_cls;
 static jmethodID blocklocation_ctor;
 
+/*
+ * Get Ceph file layout via IOCTL
+ */
 static int get_file_layout(JNIEnv *env, int fd,
 		struct ceph_ioctl_layout *layout)
 {
@@ -72,6 +75,9 @@ static int get_file_layout(JNIEnv *env, int fd,
 	return 0;
 }
 
+/*
+ * Open file read-only 
+ */
 static int open_ceph_file(JNIEnv *env, const char *path)
 {
 	int fd;
@@ -83,6 +89,9 @@ static int open_ceph_file(JNIEnv *env, const char *path)
 	return fd;
 }
 
+/*
+ * Get Ceph location information for file offset
+ */
 static int get_file_offset_location(JNIEnv *env, int fd, long offset,
 		struct ceph_ioctl_dataloc *dataloc)
 {
@@ -103,6 +112,9 @@ static int get_file_offset_location(JNIEnv *env, int fd, long offset,
 	return 0;
 }
 
+/*
+ * Return a BlockLocation object based on Ceph location information
+ */
 static jobject build_block(JNIEnv *env, struct ceph_ioctl_dataloc *dl,
 			   __u64 block_start, __u64 len)
 {
@@ -167,6 +179,9 @@ static jobject build_block(JNIEnv *env, struct ceph_ioctl_dataloc *dl,
 	return block;
 }
 
+/*
+ * Initialize and cache method and class IDs
+ */
 JNIEXPORT void JNICALL
 Java_org_apache_hadoop_fs_ceph_CephLocalityFileSystem_initIDs
 	(JNIEnv *env, jclass class)
@@ -209,6 +224,10 @@ out:
 		(*env)->DeleteGlobalRef(env, blocklocation_cls);
 }
 
+/*
+ * Create BlockLocation objects for a file in Ceph between
+ * a start and end position in the file
+ */
 JNIEXPORT jobjectArray JNICALL
 Java_org_apache_hadoop_fs_ceph_CephLocalityFileSystem_getFileBlockLocations
 	(JNIEnv *env, jobject obj, jobject j_file, jstring j_path,
