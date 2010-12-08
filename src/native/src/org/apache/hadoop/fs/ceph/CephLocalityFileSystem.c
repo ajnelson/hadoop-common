@@ -239,7 +239,7 @@ Java_org_apache_hadoop_fs_ceph_CephLocalityFileSystem_getFileBlockLocations
 	struct ceph_ioctl_dataloc dl;
     __u64 offset_start, offset_base, offset_end;
     __u64 len, total_len, stripe_unit, num_blocks, i;
-	__u64 block_start, block_end, stripe_end;
+	__u64 block_start, block_length;
 
 	jobject block;
 	jobjectArray blocks;
@@ -286,6 +286,8 @@ Java_org_apache_hadoop_fs_ceph_CephLocalityFileSystem_getFileBlockLocations
     stripe_unit = ceph_layout.stripe_unit;
 
     /*
+	 * Calculate the number of blocks
+	 *
      * Adjust for extents that span stripe units
      */
     offset_end = offset_start + len;
@@ -300,21 +302,23 @@ Java_org_apache_hadoop_fs_ceph_CephLocalityFileSystem_getFileBlockLocations
     if (!blocks)
         return NULL;
 
+	/*
+	 * Generate the first block, and align its end to stripe unit boundaries
+	 */
 	block_start = offset_start;
+	block_length = stripe_unit - (block_start % stripe_unit);
 
 	for (i = 0; i < num_blocks; i++) {
 
-		stripe_end = block_start + stripe_unit - (block_start % stripe_unit);
-		
-		if (offset_end < stripe_end)
-			block_end = offset_end;
-		else
-			block_end = stripe_end;
+		/* The last block may not end on a stripe boundary */
+		if ((block_start + block_length) > offset_end) {
+			block_length = offset_end - block_start;
+		}
 
 		if (get_file_offset_location(env, fd, block_start, &dl))
 			return NULL;
 
-		block = build_block(env, &dl, block_start, block_end-block_start);
+		block = build_block(env, &dl, block_start, block_length);
 		if (!block)
 			return NULL;
 
@@ -323,6 +327,10 @@ Java_org_apache_hadoop_fs_ceph_CephLocalityFileSystem_getFileBlockLocations
 			return NULL;
 
 		(*env)->DeleteLocalRef(env, block);
+
+		/* Start and end of next stripe unit */
+		block_start += block_length;
+		block_length = stripe_unit;
 	}
 
 	if (close(fd) < 0) {
