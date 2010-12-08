@@ -310,7 +310,7 @@ Java_org_apache_hadoop_fs_ceph_CephLocalityFileSystem_getFileBlockLocations
 
 	for (i = 0; i < num_blocks; i++) {
 
-		/* The last block may not end on a stripe boundary */
+		/* The last block might not end on a stripe boundary */
 		if ((block_start + block_length) > offset_end) {
 			block_length = offset_end - block_start;
 		}
